@@ -37,11 +37,11 @@ DEBUG=${DEBUG:-0}
 
 source zuper/zuper
 
-vars+=(ext video_factor audio_factor code_factor text_factor other_factor)
+vars+=(ext video_factor image_factor audio_factor code_factor text_factor other_factor)
 
 arrs+=(all)
 
-maps+=(video audio code text other)
+maps+=(video audio code text image other)
 maps+=(totals)
 
 source zuper/zuper.init
@@ -52,6 +52,7 @@ source file-extension-list/render/file-extension-parser.zsh
 video_factor=1  #  minimum video files to increase the video factor
 audio_factor=4  #  minimum audio files to increase the audio factor
 text_factor=8   #  minimum text  files to increase the text factor
+image_factor=10 #  minimum image files to increase the image factor
 other_factor=20 #  minimum other files to increase the other factor
 code_factor=5   #  minimum code  files to increase the code factor
 
@@ -65,7 +66,7 @@ fuzzycount() {
 	ckreq || return 1
 
 	# this redefines the priority order
-	choice=(text video audio code other)
+	choice=(video audio text image code other)
 
 	# succesful match means an entry is greater than all others
 	match=$(( ${#choice} - 1 ))
@@ -74,12 +75,14 @@ fuzzycount() {
 	totals[video]=0
 	totals[audio]=0
 	totals[other]=0
+	totals[image]=0
 	totals[code]=0
 	totals[text]=0
 
     [[ "$video[$arg]" = "" ]] && video[$arg]=0
     [[ "$audio[$arg]" = "" ]] && audio[$arg]=0
     [[ "$other[$arg]" = "" ]] && other[$arg]=0
+	[[ "$image[$arg]" = "" ]] && image[$arg]=0
 	[[ "$code[$arg]"  = "" ]] &&  code[$arg]=0
 	[[ "$text[$arg]"  = "" ]] &&  text[$arg]=0
 
@@ -87,6 +90,7 @@ fuzzycount() {
     (( ${#video} )) && totals[video]=$(( $video[$arg] / $video_factor ))
     (( ${#audio} )) && totals[audio]=$(( $audio[$arg] / $audio_factor ))
     (( ${#other} )) && totals[other]=$(( $other[$arg] / $other_factor ))
+	(( ${#image} )) && totals[image]=$(( $image[$arg] / $image_factor ))
 	(( ${#code}  )) && totals[code]=$((  $code[$arg]  / $code_factor  ))
 	(( ${#text}  )) && totals[text]=$((  $text[$arg]  / $text_factor  ))
 
@@ -142,17 +146,15 @@ for i in ${(f)files}; do
 
     case "$mime" in
 
-		video) (( ++video[$base] ))
-			   ;;
+		video) (( ++video[$base] )) ;;
 
-		audio) (( ++audio[$base] ))
-			   ;;
+		audio) (( ++audio[$base] )) ;;
 
-		code)  (( ++code[$base] ))
-			   ;;
+		image) (( ++image[$base] )) ;;
 
-		text)  (( ++text[$base] ))
-			   ;;
+		code)  (( ++code[$base] ))  ;;
+
+		text)  (( ++text[$base] ))  ;;
 
 		*)     (( ++other[$base] ))
 			   # func "${(r:5:)other[$base]} other :: $base"
