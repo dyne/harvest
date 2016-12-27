@@ -31,7 +31,7 @@ R=${HARVEST_PREFIX:-/usr/local/share/harvest}
 
 DEBUG=${DEBUG:-0}
 
-source $HARVEST_PREFIX/zuper/zuper
+source $R/zuper/zuper
 
 vars+=(ext video_factor image_factor audio_factor code_factor text_factor other_factor)
 
@@ -40,10 +40,10 @@ arrs+=(all)
 maps+=(video audio code text image other)
 maps+=(totals)
 
-source $HARVEST_PREFIX/zuper/zuper.init
+source $R/zuper/zuper.init
 
 # source the generated code parser from file-extension-list
-source $HARVEST_PREFIX/file-extension-list/render/file-extension-parser.zsh
+source $R/file-extension-list/render/file-extension-parser.zsh
 
 # fuzzy thresholds
 #
