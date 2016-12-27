@@ -1,3 +1,6 @@
 [submodule "zuper"]
 	path = zuper
 	url = https://github.com/dyne/zuper
+[submodule "file-extension-list"]
+	path = file-extension-list
+	url = https://github.com/dyne/file-extension-list

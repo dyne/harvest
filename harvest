@@ -27,7 +27,7 @@
 #
 # this is the most important section to tune the selection
 
-harvest_version=0.2
+harvest_version=0.3
 harvest_release_date="Jan/2017"
 
 # export HARVEST_PREFIX
@@ -46,34 +46,16 @@ maps+=(totals)
 
 source zuper/zuper.init
 
+# source the generated code parser from file-extension-list
+source file-extension-list/render/file-extension-parser.zsh
+
 video_factor=1  #  minimum video files to increase the video factor
 audio_factor=4  #  minimum audio files to increase the audio factor
 text_factor=8   #  minimum text  files to increase the text factor
 other_factor=20 #  minimum other files to increase the other factor
 code_factor=5   #  minimum code  files to increase the code factor
 
-
-notice "Harvest 0.2 - a tool to classify large collections of files and directories"
-
-# fast function detecting the file type from the extension
-mimedetect() {
-	ext=${1##*.}
-	case $ext:l in
-		doc|docx|log|msg|odt|pages|rtf|tex|txt|wpd|wps|pdf|ebook)
-			print text ;;
-
-		avi|mp4|x264|srt|mkv|mpg|mpeg|divx|aaf|3gp|asf|flv|m4v|ogv|wmv)
-			print video ;;
-
-		mp3|aac|flac|m4a|aiff|au|wav|wma|ape|gsm|ra|mid|sid|xm|mod|s3m|it|m3u|pls)
-			print audio ;;
-
-		c|h|cc|cpp|cxx|m4|py|rb|sh|pl|go|clj|iso|box|deb)
-			print code  ;;
-
-		*) print other ;;
-	esac
-}
+notice "Harvest $harvest_version - a tool to classify large collections of files and directories"
 
 # counts all totals using a basic fuzzy logic algo and prints results
 fuzzycount() {
@@ -151,8 +133,8 @@ act -n "analysing files "
 prev=""
 for i in ${(f)files}; do
 
-    mime=`mimedetect $i`
-
+    mime=`file-extension-parser $i`
+	func "$mime \t $i"
 
     path="${i##*${incoming}}"
     base="${path%%/*}"
