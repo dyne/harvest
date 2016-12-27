@@ -1,0 +1,159 @@
+#!/usr/bin/env zsh
+
+# Harvest is a short and fast script to sort what is a video or audio
+# or other types over LARGE quantity of data randomically collected,
+# just like torrent files downloaded from the Interwebz.
+# Processes 1TB in 15 seconds average on a ZFS filesystem.
+
+# Copyright (C) 2014-2017 Dyne.org Foundation
+
+# Harvest is designed, written and maintained by Denis Roio <jaromil@dyne.org>
+
+# This source code is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# This source code is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  Please refer
+# to the GNU Public License for more details.
+#
+# You should have received a copy of the GNU Public License along with
+# this source code; if not, write to: Free Software Foundation, Inc.,
+# 675 Mass Ave, Cambridge, MA 02139, USA.
+
+# fuzzy thresholds
+#
+# this is the most important section to tune the selection
+
+harvest_version=0.2
+harvest_release_date="Jan/2017"
+
+# export HARVEST_PREFIX
+R=${HARVEST_PREFIX:-/usr/local/share/harvest}
+
+DEBUG=${DEBUG:-0}
+
+source zuper/zuper
+
+vars+=(ext video_factor audio_factor code_factor other_factor)
+
+arrs+=(all)
+
+maps+=(video audio code other)
+
+source zuper/zuper.init
+
+video_factor=1  #  minimum video files to increase the video factor
+audio_factor=4  #  minimum audio files to increase the audio factor
+other_factor=20 #  minimum other files to increase the other factor
+code_factor=5   #  minimum code  files to increase the code factor
+
+
+notice "Harvest 0.2 - a tool to classify large collections of files and directories"
+
+# fast function detecting the file type from the extension
+mimedetect() {
+	ext=${1##*.}
+	case $ext:l in
+		avi|mp4|x264|srt|mkv|mpg|mpeg|divx|aaf|3gp|asf|flv|m4v|ogv|wmv)
+			print video ;;
+		mp3|aac|flac|m4a|aiff|au|wav|wma|ape|gsm|ra|mid|sid|xm|mod|s3m|it|m3u|pls)
+			print audio ;;
+		c|h|cc|cpp|cxx|m4|py|rb|sh|pl|go|clj|iso|box|deb)
+			print code  ;;
+		*) print other ;;
+	esac
+}
+
+# sort all filetypes in incoming, move non-videos away
+incoming="${1:-`pwd`}" #/var/lib/transmission/downloads/
+
+if   [[ -d "$incoming" ]]; then
+	incoming=${incoming}/
+	act   "scanning directory: $incoming"
+	files=`find $incoming`
+elif [[ -r "$incoming" ]]; then
+	act   "loading file list:  $incoming"
+	files=`cat $1`
+else
+	error "invalid argument:   $incoming"
+	return 1
+fi
+	
+act -n "analysing files "
+prev=""
+for i in ${(f)files}; do
+
+    mime=`mimedetect $i`
+
+
+    path="${i##*${incoming}}"
+    base="${path%%/*}"
+	[[ "$base" = "" ]] && continue;
+
+    case ${mime%%/*} in
+
+		inode) continue ;;
+		nfo|txt) continue ;;
+
+		video) (( ++video[$base] ))
+			   # func "${(r:5:)video[$base]} video :: $base"
+			   ;;
+
+		audio) (( ++audio[$base] ))
+			   # func "${(r:5:)audio[$base]} audio :: $base"
+			   ;;
+
+		code)  (( ++code[$base] ))
+			   # print "${(r:5:)code[$base]} code :: $base"
+			   ;;
+
+		*)     (( ++other[$base] ))
+			   # func "${(r:5:)other[$base]} other :: $base"
+			   ;;
+
+    esac
+
+	[[ "$prev" = "$base" ]] || {
+		(print -n "." 1>&2)
+		prev="$base" }
+		all+=($base)
+done
+
+notice "${#all} base directories analysed. Results below"
+for o in $all; do
+    vid=0; au=0; co=0; ot=0
+    [[ "$video[$o]" = "" ]] && video[$o]=0
+    [[ "$audio[$o]" = "" ]] && audio[$o]=0
+	[[ "$code[$o]"  = "" ]] &&  code[$o]=0
+    [[ "$other[$o]" = "" ]] && other[$o]=0
+
+    # very very simple, linear fuzzy logic for each
+    (( ${#video} )) && vid=$(( $video[$o] / $video_factor ))
+    (( ${#audio} )) && au=$((  $audio[$o] / $audio_factor ))
+    (( ${#other} )) && ot=$((  $other[$o] / $other_factor ))
+	(( ${#code}  )) && co=$((   $code[$o] / $code_factor  ))
+
+    # print out parsable results
+    if (( $vid > $au )) && (( $vid > $co )) && (( $vid > $ot )); then
+
+		print "video: $o"
+
+    elif (( $au > $vid )) && (( $au > $co )) && (( $au > $ot )); then
+
+		print "audio: $o"
+
+	elif (( $co > $vid )) && (( $co > $au )) && (( $co > $ot )); then
+
+		print "code: $o"
+
+    elif (( $ot > $vid )) && (( $ot > $co )) && (( $ot > $au )); then
+
+		print "other: $o"
+
+    fi
+done
+
+zuper.exit
