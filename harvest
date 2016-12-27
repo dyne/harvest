@@ -60,53 +60,53 @@ notice "Harvest $harvest_version - a tool to classify large collections of files
 
 # counts all totals using a basic fuzzy logic algo and prints results
 fuzzycount() {
-	fn fuzzycount $*
-	arg=$1
-	req=(arg)
-	ckreq || return 1
+    fn fuzzycount $*
+    arg=$1
+    req=(arg)
+    ckreq || return 1
 
-	# this redefines the priority order
-	choice=(video audio text image code other)
+    # this redefines the priority order
+    choice=(video audio text image code other)
 
-	# succesful match means an entry is greater than all others
-	match=$(( ${#choice} - 1 ))
+    # succesful match means an entry is greater than all others
+    match=$(( ${#choice} - 1 ))
 
-	# reset totals
-	totals[video]=0
-	totals[audio]=0
-	totals[other]=0
-	totals[image]=0
-	totals[code]=0
-	totals[text]=0
+    # reset totals
+    totals[video]=0
+    totals[audio]=0
+    totals[other]=0
+    totals[image]=0
+    totals[code]=0
+    totals[text]=0
 
     [[ "$video[$arg]" = "" ]] && video[$arg]=0
     [[ "$audio[$arg]" = "" ]] && audio[$arg]=0
     [[ "$other[$arg]" = "" ]] && other[$arg]=0
-	[[ "$image[$arg]" = "" ]] && image[$arg]=0
-	[[ "$code[$arg]"  = "" ]] &&  code[$arg]=0
-	[[ "$text[$arg]"  = "" ]] &&  text[$arg]=0
+    [[ "$image[$arg]" = "" ]] && image[$arg]=0
+    [[ "$code[$arg]"  = "" ]] &&  code[$arg]=0
+    [[ "$text[$arg]"  = "" ]] &&  text[$arg]=0
 
     # very very simple, linear fuzzy logic for each
     (( ${#video} )) && totals[video]=$(( $video[$arg] / $video_factor ))
     (( ${#audio} )) && totals[audio]=$(( $audio[$arg] / $audio_factor ))
     (( ${#other} )) && totals[other]=$(( $other[$arg] / $other_factor ))
-	(( ${#image} )) && totals[image]=$(( $image[$arg] / $image_factor ))
-	(( ${#code}  )) && totals[code]=$((  $code[$arg]  / $code_factor  ))
-	(( ${#text}  )) && totals[text]=$((  $text[$arg]  / $text_factor  ))
+    (( ${#image} )) && totals[image]=$(( $image[$arg] / $image_factor ))
+    (( ${#code}  )) && totals[code]=$((  $code[$arg]  / $code_factor  ))
+    (( ${#text}  )) && totals[text]=$((  $text[$arg]  / $text_factor  ))
 
-	for t in $choice; do
-		count=0
-		for o in ${(k)totals}; do
-			# don't compare with self
-			[[ "$t" = "$o" ]] && continue
+    for t in $choice; do
+        count=0
+        for o in ${(k)totals}; do
+            # don't compare with self
+            [[ "$t" = "$o" ]] && continue
 
-			(( ${totals[$t]} > ${totals[$o]} )) && (( count++ ))
-		done
-		(( $count == $match )) && { print "$t: $arg"; return 0 }
-	done
+            (( ${totals[$t]} > ${totals[$o]} )) && (( count++ ))
+        done
+        (( $count == $match )) && { print "$t: $arg"; return 0 }
+    done
 
-	func "unknown: $arg"
-	return 1
+    func "unknown: $arg"
+    return 1
 }
 
 # sort all filetypes in incoming, move non-videos away
@@ -116,63 +116,63 @@ incoming="${1:-`pwd`}" #/var/lib/transmission/downloads/
 #       -e to exclude path string patterns from analysis
 
 if   [[ "$incoming" = "source" ]]; then
-	act "internal functions loaded"
-	return 0
+    act "internal functions loaded"
+    return 0
 
 elif [[ -d "$incoming" ]]; then
-	incoming=${incoming}/
-	act   "scanning directory: $incoming"
-	files=`find $incoming`
+    incoming=${incoming}/
+    act   "scanning directory: $incoming"
+    files=`find $incoming`
 
 elif [[ -r "$incoming" ]]; then
-	act   "loading file list:  $incoming"
-	files=`cat $1`
+    act   "loading file list:  $incoming"
+    files=`cat $1`
 
 else
-	error "invalid argument:   $incoming"
-	return 1
+    error "invalid argument:   $incoming"
+    return 1
 fi
-	
+
 act -n "analysing files "
 prev=""
 for i in ${(f)files}; do
 
     mime=`file-extension-parser $i`
-	func "$mime \t $i"
+    func "$mime \t $i"
 
     path="${i##*${incoming}}"
     base="${path%%/*}"
-	[[ "$base" = "" ]] && continue;
+    [[ "$base" = "" ]] && continue;
 
     case "$mime" in
 
-		video) (( ++video[$base] )) ;;
+        video) (( ++video[$base] )) ;;
 
-		audio) (( ++audio[$base] )) ;;
+        audio) (( ++audio[$base] )) ;;
 
-		image) (( ++image[$base] )) ;;
+        image) (( ++image[$base] )) ;;
 
-		code)  (( ++code[$base] ))  ;;
+        code)  (( ++code[$base] ))  ;;
 
-		text)  (( ++text[$base] ))  ;;
+        text)  (( ++text[$base] ))  ;;
 
-		*)     (( ++other[$base] ))
-			   # func "${(r:5:)other[$base]} other :: $base"
-			   ;;
+        *)     (( ++other[$base] ))
+               # func "${(r:5:)other[$base]} other :: $base"
+               ;;
 
     esac
 
-	[[ "$prev" = "$base" ]] || {
-		(print -n "." 1>&2)
-		prev="$base" }
-		all+=($base)
+    [[ "$prev" = "$base" ]] || {
+        (print -n "." 1>&2)
+        prev="$base" }
+    all+=($base)
 done
 
 print
 notice "${#all} base directories analysed. Results below"
 for o in $all; do
 
-	fuzzycount "$o"
+    fuzzycount "$o"
 
 done
 
