@@ -23,19 +23,15 @@
 # this source code; if not, write to: Free Software Foundation, Inc.,
 # 675 Mass Ave, Cambridge, MA 02139, USA.
 
-# fuzzy thresholds
-#
-# this is the most important section to tune the selection
-
 harvest_version=0.3
 harvest_release_date="Jan/2017"
 
-# export HARVEST_PREFIX
+# export HARVEST_PREFIX=$HOME/devel/harvest
 R=${HARVEST_PREFIX:-/usr/local/share/harvest}
 
 DEBUG=${DEBUG:-0}
 
-source zuper/zuper
+source $HARVEST_PREFIX/zuper/zuper
 
 vars+=(ext video_factor image_factor audio_factor code_factor text_factor other_factor)
 
@@ -44,11 +40,14 @@ arrs+=(all)
 maps+=(video audio code text image other)
 maps+=(totals)
 
-source zuper/zuper.init
+source $HARVEST_PREFIX/zuper/zuper.init
 
 # source the generated code parser from file-extension-list
-source file-extension-list/render/file-extension-parser.zsh
+source $HARVEST_PREFIX/file-extension-list/render/file-extension-parser.zsh
 
+# fuzzy thresholds
+#
+# this is the most important section to tune the selection
 video_factor=1  #  minimum video files to increase the video factor
 audio_factor=4  #  minimum audio files to increase the audio factor
 text_factor=8   #  minimum text  files to increase the text factor
