@@ -33,6 +33,7 @@ DEBUG=${DEBUG:-0}
 
 source $R/zuper/zuper
 
+vars+=(files dirs)
 vars+=(ext video_factor image_factor audio_factor code_factor text_factor other_factor)
 
 arrs+=(all)
@@ -90,8 +91,8 @@ fuzzycount() {
     (( ${#audio} )) && totals[audio]=$(( $audio[$arg] / $audio_factor ))
     (( ${#other} )) && totals[other]=$(( $other[$arg] / $other_factor ))
     (( ${#image} )) && totals[image]=$(( $image[$arg] / $image_factor ))
-    (( ${#code}  )) && totals[code]=$((  $code[$arg]  / $code_factor  ))
-    (( ${#text}  )) && totals[text]=$((  $text[$arg]  / $text_factor  ))
+    (( ${#code}  )) &&  totals[code]=$((  $code[$arg]  / $code_factor ))
+    (( ${#text}  )) &&  totals[text]=$((  $text[$arg]  / $text_factor ))
 
     for t in $choice; do
         count=0
@@ -101,15 +102,62 @@ fuzzycount() {
 
             (( ${totals[$t]} > ${totals[$o]} )) && (( count++ ))
         done
-        (( $count == $match )) && { print "$t: $arg"; return 0 }
+        (( $count == $match )) && { print "dir \t $t \t $arg"; return 0 }
     done
 
     func "unknown: $arg"
     return 1
 }
 
-# sort all filetypes in incoming, move non-videos away
-incoming="${1:-`pwd`}" #/var/lib/transmission/downloads/
+analyse_files() {
+	act -n "analysing files "
+	prev=""
+	for i in ${(f)1}; do
+		[[ -r "$i" ]] || continue
+		mime=`file-extension-parser $i`
+		files+="file \t $mime \t $i\n"
+		(print -n "." 1>&2)
+	done
+}
+analyse_dirs() {
+	act -n "analysing directories "
+	prev=""
+	for i in ${(f)1}; do
+
+		mime=`file-extension-parser $i`
+		func "$mime \t $i"
+
+		path="${i##*${incoming}}"
+		base="${path%%/*}"
+		[[ "$base" = "" ]] && continue;
+
+		case "$mime" in
+
+			video) (( ++video[$base] )) ;;
+
+			audio) (( ++audio[$base] )) ;;
+
+			image) (( ++image[$base] )) ;;
+
+			code)  (( ++code[$base] ))  ;;
+
+			text)  (( ++text[$base] ))  ;;
+
+			*)     (( ++other[$base] ))
+				   # func "${(r:5:)other[$base]} other :: $base"
+				   ;;
+
+		esac
+
+		[[ "$prev" = "$base" ]] || {
+			(print -n "." 1>&2)
+			prev="$base" }
+		all+=($base)
+	done
+}
+
+# main argument: harvest will parse all filenames found in incoming
+incoming="${1:-`pwd`}"
 
 # TODO: build proper argument parsing and useful options
 #       -e to exclude path string patterns from analysis
@@ -120,58 +168,34 @@ if   [[ "$incoming" = "source" ]]; then
 
 elif [[ -d "$incoming" ]]; then
     incoming=${incoming}/
+	mkdir -p $HOME/.cache
+	rm -f $HOME/.cache/harvest
     act   "scanning directory: $incoming"
-    files=`find $incoming`
+	# TODO: make depth configurable
+	analyse_files "`find $incoming -maxdepth 1`"
+	analyse_dirs "`find $incoming -maxdepth 3`"
+	act   "results saved, use 'harvest cache' to replay on stdout"
 
-elif [[ -r "$incoming" ]]; then
-    act   "loading file list:  $incoming"
-    files=`cat $1`
-
+elif [[ "$incoming" == "cache" ]]; then
+	if [[ -r $HOME/.cache/harvest ]]; then
+		act   "loading file list from cache"
+		cat $HOME/.cache/harvest
+		return 0
+	else
+		error "cache not found: $HOME/.cache/harvest"
+		return 1
+	fi
 else
     error "invalid argument:   $incoming"
     return 1
 fi
 
-act -n "analysing files "
-prev=""
-for i in ${(f)files}; do
-
-    mime=`file-extension-parser $i`
-    func "$mime \t $i"
-
-    path="${i##*${incoming}}"
-    base="${path%%/*}"
-    [[ "$base" = "" ]] && continue;
-
-    case "$mime" in
-
-        video) (( ++video[$base] )) ;;
-
-        audio) (( ++audio[$base] )) ;;
-
-        image) (( ++image[$base] )) ;;
-
-        code)  (( ++code[$base] ))  ;;
-
-        text)  (( ++text[$base] ))  ;;
-
-        *)     (( ++other[$base] ))
-               # func "${(r:5:)other[$base]} other :: $base"
-               ;;
-
-    esac
-
-    [[ "$prev" = "$base" ]] || {
-        (print -n "." 1>&2)
-        prev="$base" }
-    all+=($base)
-done
-
 print
 notice "${#all} base directories analysed. Results below"
+print "${files}" | /usr/bin/tee -a $HOME/.cache/harvest
 for o in $all; do
 
-    fuzzycount "$o"
+    fuzzycount "$o"  | /usr/bin/tee -a $HOME/.cache/harvest
 
 done
 
