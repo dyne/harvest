@@ -4,15 +4,17 @@
 
 Harvest is a compact, fast and portable software that can scan stored files and directory and, based on their extension and a simple fuzzy logic analysis of directory contents, recognise if they are related to video, audio or text materials.
 
-It makes it easy to list them by type or year, to move them or to categorize them for tagged filesystems. It can process approximately 1GB of stored files per second. Harvest is operated from the console terminal, it requires `zsh` to be installed and works on all desktop platforms supported by it (GNU/Linux, Apple/OSX and MS/Windows).
+Harvest makes it easy to list them by type or year, to move them or to categorize them for tagged filesystems. It can process approximately 1GB of stored files per second. Harvest is operated from the console terminal, it requires `zsh` to be installed and works on all desktop platforms supported by it (GNU/Linux, Apple/OSX and MS/Windows).
 
-## Installation
+Harvest is designed to operate on folders containing files without exploding the files around: it assesses the typology of a folder from the files contained, but does not move the files outside of that folder. For instance it works very well to move around large collections of downloaded torrent folders.
+
+## :floppy_disk: Installation
 
 Just type `sudo make install` to install into `/usr/local/share/harvest`.
 
 The environmental variable `HARVEST_PREFIX` can be set when running harvest to indicate different installation directories. Using harvest on different operating systems than GNU/Linux/BSD may require tweaking of this variable.
 
-## Usage
+## :video_game: Usage
 
 To scan all files and directories found in a folder:
 ```
@@ -46,7 +48,13 @@ harvest mv video ~/Video
 harvest mv audio ~/Music
 ```
 
-# Acknowledgements
+Or a short concatenation of commands that will delete all harvested code files and directories:
+```sh
+harvest ls code | cut -d, -f4 | xargs rm -rf
+```
+
+
+## :heart_eyes: Acknowledgements
 
 Harvest is Copyright (C) 2014-2018 by the Dyne.org Foundation
 

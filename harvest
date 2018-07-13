@@ -1,13 +1,8 @@
 #!/usr/bin/env zsh
 
-# Harvest is a short and fast script to sort what is a video or audio
-# or other types over LARGE quantity of data randomically collected,
-# just like torrent files downloaded from the Interwebz.
-# Processes 1TB in 15 seconds average on a ZFS filesystem.
+# Copyright (C) 2014-2018 Dyne.org Foundation
 
-# Copyright (C) 2014-2017 Dyne.org Foundation
-
-# Harvest is designed, written and maintained by Denis Roio <jaromil@dyne.org>
+# Harvest is designed, written and maintained by Denis "Jaromil" Roio
 
 # This source code is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Public License as published by
@@ -23,8 +18,8 @@
 # this source code; if not, write to: Free Software Foundation, Inc.,
 # 675 Mass Ave, Cambridge, MA 02139, USA.
 
-harvest_version=0.3
-harvest_release_date="Jan/2017"
+harvest_version=0.4
+harvest_release_date="July/2018"
 
 # export HARVEST_PREFIX=$HOME/devel/harvest
 R=${HARVEST_PREFIX:-/usr/local/share/harvest}
@@ -164,6 +159,29 @@ analyse_dirs() {
 	done
 }
 
+cache_check() {
+	[[ -r $cache ]] || {
+		error "cache is empty: $cache"
+		return 1 }
+	return 0
+}
+
+## lists only cached items that actually exist
+cache_list() {
+	needle="$1"
+	for i in ${(f)"$(cat $cache)"}; do
+		fname=${i[(ws:,:)4]}
+		[[ -r "$fname" ]] || continue
+		[[ "$needle" == "" ]] && { print $i; continue }
+		fstype=${i[(ws:,:)1]}
+		genre=${i[(ws:,:)2]}
+		year=${i[(ws:,:)3]}
+		[[ "$fstype" = "$needle" ]] && print "$i"
+		[[ "$genre" = "$needle" ]] && print "$i"
+		[[ "$year" = "$needle" ]] && print "$i"
+	done
+}
+
 # return here if sourcing as lib
 [[ "$1" == "source" ]] && {
 	zuper.exit
@@ -172,48 +190,72 @@ analyse_dirs() {
 
 # main argument: harvest will parse all filenames found in incoming
 incoming="${1:-`pwd`}"
-
+cache=$HOME/.cache/harvest
 # TODO: build proper argument parsing and useful options
 #       -e to exclude path string patterns from analysis
 
 if   [[ "$incoming" = "source" ]]; then
     act "internal functions loaded"
-    return 0
+    zuper.exit; return 0
 
 elif [[ -d "$incoming" ]]; then
     incoming=${incoming}/
-	mkdir -p $HOME/.cache
-	rm -f $HOME/.cache/harvest
     act   "scanning directory: $incoming"
-	# TODO: make depth configurable
-	analyse_files "`find $incoming -maxdepth 1 | tail -n +2`"
+	analyse_files "`find $incoming -maxdepth 1 -type f | tail -n +2`"
 	print
-	act "analysing directories "
-	for d in ${(f)"$(find $incoming -maxdepth 1 -type d | tail -n +2)"}; do
-		analyse_dirs "`find $d -maxdepth 2`" $d
-	done
-	print
+	[[ "files" =~ "$2" ]] || {
+		act "analysing directories "
+		for d in ${(f)"$(find $incoming -maxdepth 1 -type d | tail -n +2)"}; do
+			# TODO: make depth configurable
+			analyse_dirs "`find $d -maxdepth 2`" $d
+		done
+		print
+	}
+	mkdir -p $HOME/.cache
+	rm -f $cache; touch $cache
+	print "${files}" | /usr/bin/tee -a $cache
+	[[ "files" =~ "$2" ]] || {
+		for o in $alldirs; do
+			fuzzycount "$o"  | /usr/bin/tee -a $cache
+		done
+	}
+	notice "${numfiles} files and ${#alldirs} directories analysed in total"
+	act   "results saved, use 'harvest cache' to replay on stdout"
 
-elif [[ "$incoming" == "cache" ]]; then
-	if [[ -r $HOME/.cache/harvest ]]; then
-		act   "loading file list from cache"
-		cat $HOME/.cache/harvest
-		return 0
-	else
-		error "cache not found: $HOME/.cache/harvest"
-		return 1
-	fi
+
+elif [[ "$incoming" == "mv" ]]; then
+	needle="$2"
+	dest="$3"
+	moved=0
+	[[ "$dest" = "" ]] && {
+		error "missing argument: destination folder"
+		act "usage: $0 mv type destination/"
+		zuper.exit; return 1 }
+	[[ -d "$dest" ]] || {
+		error "destination is not a folder: $dest"
+		act "usage: $0 mv type destination/"
+		zuper.exit; return 1 }
+	cache_check || { zuper.exit; return 1 }
+	act "Moving harvested ($needle) files to folder: $dest"
+	[[ "$needle" = "all" ]] && needle=""
+	for i in ${(f)"$(cache_list $needle)"}; do
+		fname=${i[(ws:,:)4]}
+		func "mv $fname $dest/"
+		# this is the only place where harvest modifies the filesystem
+		mv $fname $dest/
+		moved=$(( $moved + 1 ))
+	done
+	act "Done moving $moved items."
+	zuper.exit; return 0
+
+elif [[ "$incoming" == "ls" ]]; then
+	cache_check || { zuper.exit; return 1 }
+	act "Listing harvested files"
+	cache_list $2
+	zuper.exit; return 0
 else
     error "invalid argument:   $incoming"
-    return 1
+    zuper.exit; return 1
 fi
 
-print
-print "${files}" | /usr/bin/tee -a $HOME/.cache/harvest
-for o in $alldirs; do
-    fuzzycount "$o"  | /usr/bin/tee -a $HOME/.cache/harvest
-done
-notice "${numfiles} files and ${#alldirs} directories analysed in total"
-act   "results saved, use 'harvest cache' to replay on stdout"
-
-zuper.exit
+return 0; zuper.exit
