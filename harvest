@@ -33,10 +33,10 @@ DEBUG=${DEBUG:-0}
 
 source $R/zuper/zuper
 
-vars+=(files dirs)
+vars+=(files numfiles dirs)
 vars+=(ext video_factor image_factor audio_factor code_factor text_factor other_factor)
 
-arrs+=(all)
+arrs+=(alldirs)
 
 maps+=(video audio code text image other)
 maps+=(totals)
@@ -86,13 +86,13 @@ fuzzycount() {
     [[ "$code[$arg]"  = "" ]] &&  code[$arg]=0
     [[ "$text[$arg]"  = "" ]] &&  text[$arg]=0
 
-    # very very simple, linear fuzzy logic for each
+    # compute a very, very simple linear fuzzy logic for each
     (( ${#video} )) && totals[video]=$(( $video[$arg] / $video_factor ))
     (( ${#audio} )) && totals[audio]=$(( $audio[$arg] / $audio_factor ))
     (( ${#other} )) && totals[other]=$(( $other[$arg] / $other_factor ))
     (( ${#image} )) && totals[image]=$(( $image[$arg] / $image_factor ))
-    (( ${#code}  )) &&  totals[code]=$((  $code[$arg]  / $code_factor ))
-    (( ${#text}  )) &&  totals[text]=$((  $text[$arg]  / $text_factor ))
+    (( ${#code}  )) &&  totals[code]=$((  $code[$arg] / $code_factor  ))
+    (( ${#text}  )) &&  totals[text]=$((  $text[$arg] / $text_factor  ))
 
     for t in $choice; do
         count=0
@@ -102,7 +102,11 @@ fuzzycount() {
 
             (( ${totals[$t]} > ${totals[$o]} )) && (( count++ ))
         done
-        (( $count == $match )) && { print "dir \t $t \t $arg"; return 0 }
+        (( $count == $match )) && {
+			# print out directories here 
+			year=`stat -c %y $arg | cut -d'-' -f1`
+			print "dir,$t,$year,$arg"
+			return 0 }
     done
 
     func "unknown: $arg"
@@ -110,25 +114,29 @@ fuzzycount() {
 }
 
 analyse_files() {
-	act -n "analysing files "
+	act "analysing files "
 	prev=""
+	numfiles=0
 	for i in ${(f)1}; do
 		[[ -r "$i" ]] || continue
 		mime=`file-extension-parser $i`
-		files+="file \t $mime \t $i\n"
+		year=`stat -c %y $i | cut -d'-' -f1`
+		files+="file,$mime,$year,$i\n"
 		(print -n "." 1>&2)
+		numfiles=$(( $numfiles + 1 ))
 	done
 }
 analyse_dirs() {
-	act -n "analysing directories "
 	prev=""
 	for i in ${(f)1}; do
 
 		mime=`file-extension-parser $i`
-		func "$mime \t $i"
 
-		path="${i##*${incoming}}"
-		base="${path%%/*}"
+		# pathname="${i##*${incoming}}"
+		# base="${patnameh%%/*}"
+		base=$2
+		func "$mime \t $base"
+
 		[[ "$base" = "" ]] && continue;
 
 		case "$mime" in
@@ -152,8 +160,14 @@ analyse_dirs() {
 		[[ "$prev" = "$base" ]] || {
 			(print -n "." 1>&2)
 			prev="$base" }
-		all+=($base)
+		alldirs+=($base)
 	done
+}
+
+# return here if sourcing as lib
+[[ "$1" == "source" ]] && {
+	zuper.exit
+	return 0
 }
 
 # main argument: harvest will parse all filenames found in incoming
@@ -172,9 +186,13 @@ elif [[ -d "$incoming" ]]; then
 	rm -f $HOME/.cache/harvest
     act   "scanning directory: $incoming"
 	# TODO: make depth configurable
-	analyse_files "`find $incoming -maxdepth 1`"
-	analyse_dirs "`find $incoming -maxdepth 3`"
-	act   "results saved, use 'harvest cache' to replay on stdout"
+	analyse_files "`find $incoming -maxdepth 1 | tail -n +2`"
+	print
+	act "analysing directories "
+	for d in ${(f)"$(find $incoming -maxdepth 1 -type d | tail -n +2)"}; do
+		analyse_dirs "`find $d -maxdepth 2`" $d
+	done
+	print
 
 elif [[ "$incoming" == "cache" ]]; then
 	if [[ -r $HOME/.cache/harvest ]]; then
@@ -191,12 +209,11 @@ else
 fi
 
 print
-notice "${#all} base directories analysed. Results below"
 print "${files}" | /usr/bin/tee -a $HOME/.cache/harvest
-for o in $all; do
-
+for o in $alldirs; do
     fuzzycount "$o"  | /usr/bin/tee -a $HOME/.cache/harvest
-
 done
+notice "${numfiles} files and ${#alldirs} directories analysed in total"
+act   "results saved, use 'harvest cache' to replay on stdout"
 
 zuper.exit
