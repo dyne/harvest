@@ -1,21 +1,27 @@
-# Harvest
+# Harvest - a tool to classify large collections of files and directories
 
 [![software by Dyne.org](https://zenroom.dyne.org/img/software_by_dyne.png)](http://www.dyne.org)
 
-Harvest is a compact, fast and portable software that can scan stored files and directory and, based on their extension and a simple fuzzy logic analysis of directory contents, recognise if they are related to video, audio or text materials.
+Harvest is a compact, fast and portable software that can scan files and folders to recognise their typology. Scanning is based on file extensions and a simple fuzzy logic analysis of folder contents to recognise if they are related to video, audio or text materials.
 
-Harvest makes it easy to list them by type or year, to move them or to categorize them for tagged filesystems. It can process approximately 1GB of stored files per second. Harvest is operated from the console terminal, it requires `zsh` to be installed and works on all desktop platforms supported by it (GNU/Linux, Apple/OSX and MS/Windows).
+Harvest makes it easy to list folders by type or year, to move them or to categorize them for tagged filesystems. It can process approximately 1GB of stored files per second and is operated from the console terminal.
 
 Harvest is designed to operate on folders containing files without exploding the files around: it assesses the typology of a folder from the files contained, but does not move the files outside of that folder. For instance it works very well to move around large collections of downloaded torrent folders.
 
 ## :floppy_disk: Installation
 
+Harvest requires `zsh` to be installed and works on all desktop platforms supported by it (GNU/Linux, Apple/OSX and MS/Windows).
+
+From inside the source, just type:
+
 Just type 
 ```bash
 git submodule update --init --recursive
+make
 sudo make install
 ``` 
 to install into `/usr/local/share/harvest`.
+
 
 The environmental variable `HARVEST_PREFIX` can be set when running harvest to indicate different installation directories. Using harvest on different operating systems than GNU/Linux/BSD may require tweaking of this variable.
 
@@ -27,7 +33,7 @@ harvest /path/to/folder
 ```
 To scan only the files (non recursive):
 ```
-harvest /path/to/folder
+harvest /path/to/folder files
 ```
 
 After scanning, results are print to screen, but also saved in a local cache. Then it is possible to list all video hits in the most recent scan:

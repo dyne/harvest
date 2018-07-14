@@ -29,11 +29,11 @@ DEBUG=${DEBUG:-0}
 source $R/zuper/zuper
 
 vars+=(files numfiles dirs)
-vars+=(ext video_factor image_factor audio_factor code_factor text_factor other_factor)
+vars+=(ext video_factor image_factor audio_factor code_factor text_factor other_factor web_factor slide_factor sheet_factor archiv_factor)
 
 arrs+=(alldirs)
 
-maps+=(video audio code text image other)
+maps+=(video audio code text image other web slide sheet archiv)
 maps+=(totals)
 
 source $R/zuper/zuper.init
@@ -43,13 +43,20 @@ source $R/file-extension-list/render/file-extension-parser.zsh
 
 # fuzzy thresholds
 #
-# this is the most important section to tune the selection
+# this is the most important section to tune the selection: the higher
+# the values the more file of that type need to be present in a
+# directory to classify it with their own type. In other words a lower
+# number makes the type "dominant".
 video_factor=1  #  minimum video files to increase the video factor
-audio_factor=4  #  minimum audio files to increase the audio factor
+audio_factor=3  #  minimum audio files to increase the audio factor
 text_factor=8   #  minimum text  files to increase the text factor
 image_factor=10 #  minimum image files to increase the image factor
 other_factor=20 #  minimum other files to increase the other factor
 code_factor=5   #  minimum code  files to increase the code factor
+web_factor=10
+slide_factor=2
+sheet_factor=3
+archiv_factor=10
 
 notice "Harvest $harvest_version - a tool to classify large collections of files and directories"
 
@@ -61,7 +68,7 @@ fuzzycount() {
     ckreq || return 1
 
     # this redefines the priority order
-    choice=(video audio text image code other)
+    choice=(video audio image text web slide sheet archiv code other)
 
     # succesful match means an entry is greater than all others
     match=$(( ${#choice} - 1 ))
@@ -73,6 +80,10 @@ fuzzycount() {
     totals[image]=0
     totals[code]=0
     totals[text]=0
+	totals[web]=0
+	totals[slide]=0
+	totals[sheet]=0
+	totals[archiv]=0
 
     [[ "$video[$arg]" = "" ]] && video[$arg]=0
     [[ "$audio[$arg]" = "" ]] && audio[$arg]=0
@@ -80,6 +91,10 @@ fuzzycount() {
     [[ "$image[$arg]" = "" ]] && image[$arg]=0
     [[ "$code[$arg]"  = "" ]] &&  code[$arg]=0
     [[ "$text[$arg]"  = "" ]] &&  text[$arg]=0
+    [[ "$web[$arg]"  = "" ]] &&    web[$arg]=0
+    [[ "$slide[$arg]"  = "" ]] && slide[$arg]=0
+    [[ "$sheet[$arg]"  = "" ]] && sheet[$arg]=0
+    [[ "$archiv[$arg]"  = "" ]] && archiv[$arg]=0
 
     # compute a very, very simple linear fuzzy logic for each
     (( ${#video} )) && totals[video]=$(( $video[$arg] / $video_factor ))
@@ -88,6 +103,10 @@ fuzzycount() {
     (( ${#image} )) && totals[image]=$(( $image[$arg] / $image_factor ))
     (( ${#code}  )) &&  totals[code]=$((  $code[$arg] / $code_factor  ))
     (( ${#text}  )) &&  totals[text]=$((  $text[$arg] / $text_factor  ))
+    (( ${#web}  )) &&  totals[web]=$((  $web[$arg] / $web_factor  ))
+    (( ${#slide}  )) &&  totals[slide]=$((  $slide[$arg] / $slide_factor  ))
+    (( ${#sheet}  )) &&  totals[sheet]=$((  $sheet[$arg] / $sheet_factor  ))
+    (( ${#archiv}  )) &&  totals[archiv]=$((  $archiv[$arg] / $archiv_factor  ))
 
     for t in $choice; do
         count=0
@@ -98,14 +117,14 @@ fuzzycount() {
             (( ${totals[$t]} > ${totals[$o]} )) && (( count++ ))
         done
         (( $count == $match )) && {
-			# print out directories here 
+			# get the year and print out directories here 
 			year=`stat -c %y $arg | cut -d'-' -f1`
 			print "dir,$t,$year,$arg"
 			return 0 }
     done
-
-    func "unknown: $arg"
-    return 1
+	year=`stat -c %y $arg | cut -d'-' -f1`
+	print "dir,other,$year,$arg"
+    return 0
 }
 
 analyse_files() {
@@ -126,9 +145,6 @@ analyse_dirs() {
 	for i in ${(f)1}; do
 
 		mime=`file-extension-parser $i`
-
-		# pathname="${i##*${incoming}}"
-		# base="${patnameh%%/*}"
 		base=$2
 		func "$mime \t $base"
 
@@ -145,6 +161,14 @@ analyse_dirs() {
 			code)  (( ++code[$base] ))  ;;
 
 			text)  (( ++text[$base] ))  ;;
+
+			slide)  (( ++slide[$base] ))  ;;
+
+			web)  (( ++web[$base] ))  ;;
+
+			sheet)  (( ++sheet[$base] ))  ;;
+
+			archiv)  (( ++archiv[$base] ))  ;;
 
 			*)     (( ++other[$base] ))
 				   # func "${(r:5:)other[$base]} other :: $base"
@@ -203,7 +227,7 @@ elif [[ -d "$incoming" ]]; then
     act   "scanning directory: $incoming"
 	analyse_files "`find $incoming -maxdepth 1 -type f | tail -n +2`"
 	print
-	[[ "files" =~ "$2" ]] || {
+	[[ "files" == "$2" ]] || {
 		act "analysing directories "
 		for d in ${(f)"$(find $incoming -maxdepth 1 -type d | tail -n +2)"}; do
 			# TODO: make depth configurable
@@ -214,7 +238,7 @@ elif [[ -d "$incoming" ]]; then
 	mkdir -p $HOME/.cache
 	rm -f $cache; touch $cache
 	print "${files}" | /usr/bin/tee -a $cache
-	[[ "files" =~ "$2" ]] || {
+	[[ "files" == "$2" ]] || {
 		for o in $alldirs; do
 			fuzzycount "$o"  | /usr/bin/tee -a $cache
 		done
