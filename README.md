@@ -10,7 +10,12 @@ Harvest is designed to operate on folders containing files without exploding the
 
 ## :floppy_disk: Installation
 
-Just type `sudo make install` to install into `/usr/local/share/harvest`.
+Just type 
+```bash
+git submodule update --init --recursive
+sudo make install
+``` 
+to install into `/usr/local/share/harvest`.
 
 The environmental variable `HARVEST_PREFIX` can be set when running harvest to indicate different installation directories. Using harvest on different operating systems than GNU/Linux/BSD may require tweaking of this variable.
 
