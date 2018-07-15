@@ -41,7 +41,13 @@ After scanning, results are print to screen, but also saved in a local cache. Th
 harvest ls video
 ```
 
-To move harvested audio files to a "Sound" folder in home (beware, this command will actually move files across your filesystem):
+The `harvest ls` command will list all hits comma separated per line so that it can be piped and parsed into other programs to take further actions; the CSV format is:
+```
+[dir|file],TYPE,year,path_to_file
+```
+The `TYPE` field is one of the strings returned by `ls file-extension-list/data` which is the catalogue of file types maintained in the [file-extension-list project](https://github.com/dyne/file-extension-list).
+
+To proceed moving harvested audio files to another "Sound" folder in home:
 ```
 harvest mv audio ~/Sound/
 ```
@@ -52,7 +58,7 @@ harvest mv all ~/destination
 ```
 
 So for instance a simple script using harvest to move all downloaded audio and video files in different home folders would look like:
-```sh
+```bash
 #!/bin/sh
 harvest  ~/Downloads
 harvest mv video ~/Video
@@ -60,10 +66,21 @@ harvest mv audio ~/Music
 ```
 
 Or a short concatenation of commands that will delete all harvested code files and directories:
-```sh
+```bash
 harvest ls code | cut -d, -f4 | xargs rm -rf
 ```
 
+Or a Zsh script to move all files into "Archive/YEAR" to distribute files according to the year in which they were created:
+```bash
+#!/usr/bin/env zsh
+for i in ${(f)"$(harvest ls)"}; do
+	year=${i[(ws:,:)3]}
+	file=${i[(ws:,:)4]}
+	mkdir -p ~/Archive/$year
+	mv $file ~/Archive/$year/
+done
+```
+In the previous script one can use the file type instead of the year by changing `year=${i[(ws:,:)3]}` into `type=${i[(ws:,:)2]}`.
 
 ## :heart_eyes: Acknowledgements
 
