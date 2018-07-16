@@ -36,6 +36,18 @@ arrs+=(alldirs)
 maps+=(video audio code text image other web slide sheet archiv)
 maps+=(totals)
 
+case `uname` in
+  Darwin)
+    STAT_OPTS="-f %Sm -t %F"
+    ;;
+  Linux)
+    STAT_OPTS='-c %y'
+    ;;
+  FreeBSD)
+    STAT_OPTS="-f %Sm -t %F"
+    ;;
+esac
+
 source $R/zuper/zuper.init
 
 # source the generated code parser from file-extension-list
@@ -118,11 +130,11 @@ fuzzycount() {
         done
         (( $count == $match )) && {
 			# get the year and print out directories here 
-			year=`stat -c %y $arg | cut -d'-' -f1`
+			year=`stat ${=STAT_OPTS} $arg | cut -d'-' -f1`
 			print "dir,$t,$year,$arg"
 			return 0 }
     done
-	year=`stat -c %y $arg | cut -d'-' -f1`
+	year=`stat ${=STAT_OPTS} $arg | cut -d'-' -f1`
 	print "dir,other,$year,$arg"
     return 0
 }
@@ -134,7 +146,7 @@ analyse_files() {
 	for i in ${(f)1}; do
 		[[ -r "$i" ]] || continue
 		mime=`file-extension-parser $i`
-		year=`stat -c %y $i | cut -d'-' -f1`
+		year=`stat ${=STAT_OPTS} $i | cut -d'-' -f1`
 		files+="file,$mime,$year,$i\n"
 		(print -n "." 1>&2)
 		numfiles=$(( $numfiles + 1 ))
@@ -244,7 +256,7 @@ elif [[ -d "$incoming" ]]; then
 		done
 	}
 	notice "${numfiles} files and ${#alldirs} directories analysed in total"
-	act   "results saved, use 'harvest ls' to replay on stdout"
+	act   "results saved, use 'harvest cache' to replay on stdout"
 
 
 elif [[ "$incoming" == "mv" ]]; then
