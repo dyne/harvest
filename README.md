@@ -25,6 +25,12 @@ to install into `/usr/local/share/harvest`.
 
 The environmental variable `HARVEST_PREFIX` can be set when running harvest to indicate different installation directories. Using harvest on different operating systems than GNU/Linux/BSD may require tweaking of this variable.
 
+Other required applications are likely to be already found on your system:
+```
+zsh awk grep xclip
+```
+Extended functionalities can be attained by installing [TMSU](https://tmsu.org/) (see below "Advanced Usage").
+
 ## :video_game: Usage
 
 To scan all files and directories found in a folder:
@@ -80,13 +86,43 @@ for i in ${(f)"$(harvest ls)"}; do
 	mv $file ~/Archive/$year/
 done
 ```
-In the previous script one can use the file type instead of the year by changing `year=${i[(ws:,:)3]}` into `type=${i[(ws:,:)2]}`.
+In the previous script one can use the file type instead of the year by changing `year=${i[(ws:,:)3]}` into `type=${i[(ws:,:)2]}`. To navigate tags however is not necessary to modify the filesystem contents: in order to accomplish that, the next section will illustrate the use of a virtual tagged filesystem.
+
+## :telescope: Advanced usage
+
+To allow the navigation of files in the style of a [Semantic Filesystem](https://en.wikipedia.org/wiki/Semantic_file_system), Harvest supports [TMSU](https://tmsu.org/), an small utility to maintain a database of tags inside an hidden directory `.tmsu` in each harvested folder.
+
+To initialise a `tmsu` database bootstrapped with harvest's tags in the currently harvested folder, do:
+```
+harvest tmsu
+```
+Directories indexed this way can then be "mounted" (using fuse) and navigated:
+```
+harvest mount
+```
+Inside the `$harvest` hidden subfolder (pointing to `.mnt` inside the folder) tags will become folders containing symbolic links to the actual tagged files. Any filemananger following symbolic links can be used to navigate tags, also tags will be set as bookmarks in graphical filemanagers (GTK3 supported).
+
+In addition to the tags view, there is also a queries folder in which you can run view queries by listing or creating new folders:
+```
+ls -l "$harvest/queries/text and 2018"
+```
+ This automatic creation of the query folders makes it possible to use new file queries within the file chooser of a graphical program simply by typing the query in. Unwanted query folders can be safely removed.
+
+Limited tag management is also possible via the virtual filesystem. For example one can remove specific tags from a file by deleting the symbolic link in the tag folder, or delete a tag by performing a recursive delete.
+
+To unmount all TMSU semantic filesystems currently mounted, just do:
+```
+harvest umount
+```
+Further TMSU operations are possible operating directly from inside the directories that have been indexed using `harvest tmsu`, for more information see `tmsu help`. For instance, TMSU also detects duplicate files using `tmsu dupes`.
+
 
 ## :heart_eyes: Acknowledgements
 
 Harvest is Copyright (C) 2014-2018 by the Dyne.org Foundation
 
 Harvest is designed, written and maintained by Denis "Jaromil" Roio
+with contributions by Puria Nafisi Azizi.
 
 This source code is free software; you can redistribute it and/or
 modify it under the terms of the GNU Public License as published by

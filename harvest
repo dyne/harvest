@@ -18,7 +18,7 @@
 # this source code; if not, write to: Free Software Foundation, Inc.,
 # 675 Mass Ave, Cambridge, MA 02139, USA.
 
-harvest_version=0.4
+harvest_version=0.5
 harvest_release_date="July/2018"
 
 # export HARVEST_PREFIX=$HOME/devel/harvest
@@ -202,10 +202,19 @@ cache_check() {
 	return 0
 }
 
+root_check() {
+    root=`grep -m 1 '^#+root:' $cache | cut -d: -f2 | trim`
+	[[ -d $root ]] || {
+		error "no root found in cache"
+		return 1 }
+	return 0
+}
+
 ## lists only cached items that actually exist
 cache_list() {
 	needle="$1"
 	for i in ${(f)"$(cat $cache)"}; do
+		[[ "${i[1]}" = "#" ]] && continue
 		fname=${i[(ws:,:)4]}
 		[[ -r "$fname" ]] || continue
 		[[ "$needle" == "" ]] && { print $i; continue }
@@ -218,6 +227,16 @@ cache_list() {
 	done
 }
 
+getattr() {
+    a=$1; v=$2
+    shift 3
+    getfattr -n $a $* |
+		awk "BEGIN  {
+      RS=\"# file: \"
+      FS=\"\n\"
+    }/=\"$v\"/ { print \$1 }"
+}
+
 # return here if sourcing as lib
 [[ "$1" == "source" ]] && {
 	zuper.exit
@@ -227,6 +246,8 @@ cache_list() {
 # main argument: harvest will parse all filenames found in incoming
 incoming="${1:-`pwd`}"
 cache=$HOME/.cache/harvest
+bmarks=$HOME/.config/gtk-3.0/bookmarks
+
 # TODO: build proper argument parsing and useful options
 #       -e to exclude path string patterns from analysis
 
@@ -236,19 +257,22 @@ if   [[ "$incoming" = "source" ]]; then
 
 elif [[ -d "$incoming" ]]; then
     incoming=${incoming}/
-    act   "scanning directory: $incoming"
+	depth=${2:-2}
+    act   "scanning directory: $incoming (depth $depth)"
 	analyse_files "`find $incoming -maxdepth 1 -type f | tail -n +2`"
 	print
 	[[ "files" == "$2" ]] || {
 		act "analysing directories "
 		for d in ${(f)"$(find $incoming -maxdepth 1 -type d | tail -n +2)"}; do
 			# TODO: make depth configurable
-			analyse_dirs "`find $d -maxdepth 2`" $d
+			analyse_dirs "`find $d -maxdepth $depth`" $d
 		done
 		print
 	}
 	mkdir -p $HOME/.cache
-	rm -f $cache; touch $cache
+	rm -f $cache
+	print "#+root: $incoming" > $cache
+	print "#+depth: $depth"  >> $cache
 	print "${files}" | /usr/bin/tee -a $cache
 	[[ "files" == "$2" ]] || {
 		for o in $alldirs; do
@@ -272,7 +296,7 @@ elif [[ "$incoming" == "mv" ]]; then
 		act "usage: $0 mv type destination/"
 		zuper.exit; return 1 }
 	cache_check || { zuper.exit; return 1 }
-	act "Moving harvested ($needle) files to folder: $dest"
+	act "Moving harvested files to folder: $dest"
 	[[ "$needle" = "all" ]] && needle=""
 	for i in ${(f)"$(cache_list $needle)"}; do
 		fname=${i[(ws:,:)4]}
@@ -286,12 +310,103 @@ elif [[ "$incoming" == "mv" ]]; then
 
 elif [[ "$incoming" == "ls" ]]; then
 	cache_check || { zuper.exit; return 1 }
-	act "Listing harvested files"
+	act "Listing harvested files $2"
 	cache_list $2
 	zuper.exit; return 0
-else
-    error "invalid argument:   $incoming"
-    zuper.exit; return 1
+
+# using attr (getfattr / setfattr)
+elif [[ "$incoming" == "attr" ]]; then
+	if command -v setfattr; then
+        cache_check || { zuper.exit; return 1 }
+        act "Set tags as filesystem extended attributes"
+        act "usin harvest.type key/value store"
+        root=`grep -m 1 '^#+root:' $cache | cut -d: -f2 | trim`
+        pushd $root
+        for i in ${(f)"$(cache_list $2)"}; do
+            fname=${i[(ws:,:)4]}
+            ftype=${i[(ws:,:)2]}
+            fyear=${i[(ws:,:)3]}
+            setfattr -n "harvest.type" -v "$ftype" "$fname"
+            setfattr -n "harvest.year" -v "$fyear" "$fname"
+        done
+        popd; zuper.exit; return 0
+    else
+		error "attr commands not found (setfattr)"
+	fi
+
+# using tmsu
+elif [[ "$incoming" == "tmsu" ]]; then
+	command -v tmsu >/dev/null || {
+		error "tmsu command not found"
+		zuper.exit; return 1 }
+    cache_check || { zuper.exit; return 1 }
+    act "Tagging harvested files with tmsu"
+    root=`grep -m 1 '^#+root:' $cache | cut -d: -f2 | trim`
+    pushd $root
+    func "tmsu init -v -D $root"
+    tmsu init -v -D $root
+    tmsu config \
+         autoCreateTags=yes \
+         autoCreateValues=no \
+         directoryFingerprintAlgorithm=none \
+         fileFingerprintAlgorithm=none \
+         reportDuplicates=yes
+
+    for i in ${(f)"$(cache_list $2)"}; do
+        fname=${i[(ws:,:)4]}
+        [[ -r "$fname" ]] || continue
+        ftype=${i[(ws:,:)2]}
+        fyear=${i[(ws:,:)3]}
+        # act "tmsu tag $fname $ftype"
+        tmsu tag "$fname" "$ftype"
+        numfiles=$(( $numfiles + 1 ))
+    done
+    popd
+    zuper.exit; return 0
+
+elif [[ "$incoming" == "mount" ]]; then
+	command -v tmsu >/dev/null || {
+		error "tmsu command not found"
+		zuper.exit; return 1 }
+	cache_check || { zuper.exit; return 1 }
+	root_check  || { zuper.exit; return 1 }
+	[[ -r $root/.tmsu/db ]] || {
+		error "tmsu tags not initialised, use 'harvest tmsu'"
+		zuper.exit; return 1 }
+	[[ -d $root/.mnt/tags ]] || {
+		act "Mounting tagged filesystem in $root/.mnt"
+		mkdir -p $root/.mnt
+		tmsu mount -D $root/.tmsu/db $root/.mnt 
+	}
+	# setup gtk bookmarks too (for sidebar in pcmanfm, thunar etc.)
+	[[ -r $bmarks~harvest ]] || {
+		mv $bmarks $bmarks~harvest
+		for i in ${(f)"$(ls $root/.mnt/tags)"}; do
+			print "file://$root/.mnt/tags/$i" >> $bmarks
+		done
+	}
+	act "$root tagged filesytem ready (path in clipboard and \$harvest)"
+	print $root/.mnt | xclip
+	export harvest=$root/.mnt
+
+elif [[ "$incoming" == "umount" ]]; then
+	command -v tmsu >/dev/null || {
+		error "tmsu command not found"
+		zuper.exit; return 1 }
+	for i in ${(f)"$(mount | awk '
+/fuse.pathfs.pathInode/ { print $3 }')"}; do
+		act "umount $i"
+		tmsu umount $i
+		if [[ $? = 0 ]]; then
+			act "$i tagged filesystem unmounted"
+		else
+			error "$i error unmounting tagged filesystem"
+			break
+		fi
+	done
+	[[ -r $bmarks~harvest ]] &&
+		mv $bmarks~harvest $bmarks
+	unset harvest
 fi
 
-return 0; zuper.exit
+zuper.exit; return 0
