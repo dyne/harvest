@@ -282,7 +282,7 @@ elif [[ -d "$incoming" ]]; then
 		done
 	}
 	notice "${numfiles} files and ${#alldirs} directories analysed in total"
-	act   "results saved, use 'harvest cache' to replay on stdout"
+	act   "results saved, use 'harvest ls' to replay on stdout"
 
 
 elif [[ "$incoming" == "mv" ]]; then
