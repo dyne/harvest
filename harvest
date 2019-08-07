@@ -256,6 +256,8 @@ if   [[ "$incoming" = "source" ]]; then
     zuper.exit; return 0
 
 elif [[ -d "$incoming" ]]; then
+	# [[ ${incoming[0]} == "/" ]] || {
+	# 	pushd "$incoming"; incoming=`pwd`; popd }
     incoming=${incoming}/
 	depth=${2:-2}
     act   "scanning directory: $incoming (depth $depth)"
@@ -319,7 +321,7 @@ elif [[ "$incoming" == "attr" ]]; then
 	if command -v setfattr; then
         cache_check || { zuper.exit; return 1 }
         act "Set tags as filesystem extended attributes"
-        act "usin harvest.type key/value store"
+        act "using harvest.type key/value store"
         root=`grep -m 1 '^#+root:' $cache | cut -d: -f2 | trim`
         pushd $root
         for i in ${(f)"$(cache_list $2)"}; do
@@ -376,7 +378,9 @@ elif [[ "$incoming" == "mount" ]]; then
 	[[ -d $root/.mnt/tags ]] || {
 		act "Mounting tagged filesystem in $root/.mnt"
 		mkdir -p $root/.mnt
-		tmsu mount -D $root/.tmsu/db $root/.mnt 
+		tmsu mount -D $root/.tmsu/db $root/.mnt || {
+			error "Error mounting tagged filesystem using tmsu"
+			zuper.exit; return 1 }
 	}
 	# setup gtk bookmarks too (for sidebar in pcmanfm, thunar etc.)
 	[[ -r $bmarks~harvest ]] || {
