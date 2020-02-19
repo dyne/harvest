@@ -1,6 +1,6 @@
 # Harvest - a tool to classify large collections of files and directories
 
-[![software by Dyne.org](https://zenroom.dyne.org/img/software_by_dyne.png)](http://www.dyne.org)
+[![software by Dyne.org](https://files.dyne.org/software_by_dyne.png)](http://www.dyne.org)
 
 Harvest is a compact, fast and portable software that can scan files and folders to recognise their typology. Scanning is based on file extensions and a simple fuzzy logic analysis of folder contents to recognise if they are related to video, audio or text materials.
 
@@ -119,7 +119,7 @@ Further TMSU operations are possible operating directly from inside the director
 
 ## :heart_eyes: Acknowledgements
 
-Harvest is Copyright (C) 2014-2018 by the Dyne.org Foundation
+Harvest is Copyright (C) 2014-2020 by the Dyne.org Foundation
 
 Harvest is designed, written and maintained by Denis "Jaromil" Roio
 with contributions by Puria Nafisi Azizi.
