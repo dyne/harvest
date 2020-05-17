@@ -1,5 +1,5 @@
 
 all:
-	luajit -b harvest.lua harvest.luac
-	CC="" luastatic harvest.luac cliargs.lua cliargs/*.lua cliargs/utils/*.lua lfs.a 
-	rm harvest.luac
+	$(CC) -c $(INCLUDE) $(CFLAGS) --fast-math lfs.c -o lfs.o
+	$(AR) rcs lfs.a lfs.o
+	CC="" luastatic harvest.lua cliargs.lua cliargs/*.lua cliargs/utils/*.lua lfs.a 

@@ -115,28 +115,9 @@ end
 
 cli:set_name("harvest")
 cli:option("-p, --path=PATH", "the path to scan", lfs.currentdir())
-cli:flag("-i, --internal", "analysis of all subdirectories inside the path", false)
-cli:flag("-d", "run in DEBUG mode")
+cli:flag("-d", "run in DEBUG mode", function() DEBUG=1 end)
 cli:flag("-v, --version", "print the version and exits", function()
-			print("Harvest version 0.7")
-			os.exit(0) end)
-cli:flag("--score", "print fuzzy logic scores")
-
-cli:command('list', 'List detected categories in the latest scan')
-   :action(function(options)
-		 -- diff implementation goes here
-		 print(cli.name .. " called with: ")
-		 I(options)
-		  end)
-
--- cli:command('scan', 'List detected categories in the latest scan')
---    :splat('path', 'Specify which path of those already scanned', nil, 999)
---    :flag("--score", "print fuzzy logic scores")
---    :action(function(options)
--- 		 -- diff implementation goes here
--- 		 print(cli.name .. " called with: ")
--- 		 I(options)
--- 		  end)
+			print("Harvest version 0.7") os.exit(0) end)
 
 local args, err = cli:parse(arg)
 
@@ -146,54 +127,24 @@ if not args and err then
    os.exit(1)
 elseif args then -- default command is scan
    -- recursive
-   local scores
-   local analysis
-   local attr = { }
-   local fileguess
-   local filedate
    local fattr = lfs.attributes
-   if args.internal then
-	  for file in lfs.dir(args.path) do
-		 if not (file == '.' or file == '..') then
-			-- attr = { size = 0, mode = 'file', modification = os.time() }
-			attr = fattr(file)
-			-- print(file)
-			-- I(attr)
-			if attr.mode == "directory" then   
-			   analysis = fuzzyguess( analyse_path(file) )
+   for file in lfs.dir(args.path) do
+	  if not (file == '.' or file == '..') then
+		 attr = fattr(file)
+		 -- I(attr)
+		 if type(attr) == 'table' then
+			if attr.mode == "directory" then
+			   local analysis = fuzzyguess( analyse_path(file, nil, 3) )
 			   collectgarbage'collect'
 			   print("dir,"..analysis.guess..","..attr.modification..",,"..file)
 			else
-			   fileguess = file_extension_list[ extparser(file) ] or 'other'
+			   local fileguess =
+				  file_extension_list[ extparser(file) ] or 'other'
 			   attr = fattr(file)
 			   print("file,"..fileguess..","..attr.modification..","
 						..attr.size..","..file)
 			end
 		 end
 	  end
-   else
-	  -- external scan: just scan one file or dir
-	  scores = analyse_path(args.path)
-	  analysis = fuzzyguess(scores)
-	  print("Path "..args.path.." is "..string.upper(analysis.guess))
-	  print("Fuzzy logic scores:")
-	  I(analysis.totals)
    end
-
 end
-
--- see: https://github.com/amireh/lua_cliargs/blob/master/examples/00_general.lua
--- if not args and err then
---    -- something wrong happened and an error was printed
---    print(string.format('%s: %s; re-run with help for usage', cli.name, err))
---    os.exit(1)
--- end
-
--- local file
--- for file in lfs.dir(PWD) do
---    if lfs.attributes(tarpath,"mode") == "directory" then   
--- analyse_path(PWD)
-
--- print("Path "..PWD.." is "..string.upper(fuzzyguess()))
--- print("Fuzzy logic scores:")
--- I(totals)
