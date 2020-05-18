@@ -25,12 +25,18 @@ package.path = package.path ..";"..lfs.currentdir().."/src/?.lua"
 
 local cli = require'cliargs'
 
+local align = require'align'
+
+local function stderr(_msg) io.stderr:write(_msg..'\n') end
+local function stdout(_msg) io.stdout:write(_msg..'\n') end
+
 -- debug
 DEBUG=0
 local inspect = require'inspect'
-local function I(o) print( inspect.inspect(o) ) end
+local function I(o) 
+   if DEBUG > 0 then stderr( inspect.inspect(o) ) end end
 local function D(s)
-   if DEBUG > 0 then print(s) end
+   if DEBUG > 0 then stderr(s) end
 end
 
 -- # fuzzy thresholds
@@ -96,7 +102,7 @@ end
 
 local function fuzzyguess(scores)
    -- compute a very, very simple linear fuzzy logic for each
-   local res = { guess = 'unknown',
+   local res = { guess = 'other',
 				 totals = { } }
    for k,v in pairs(scores) do
 	  res.totals[k] = #v / (fuzzy[k] or fuzzy['other'])
@@ -111,40 +117,110 @@ local function fuzzyguess(scores)
    return res
 end
 
--- CLI: command line argument parsing
+-- checks that the file attributes match the selection arguments
+local function filter_selection(args, attr)
+   if args.type and (args.type ~= attr.guess) then return false end
+   if args.file and attr.mode == 'directory' then return false end
+   if args.dir and attr.mode ~= 'directory' then return false end
+   return true
+end
 
-cli:set_name("harvest")
-cli:option("-p, --path=PATH", "the path to scan", lfs.currentdir())
-cli:flag("-d", "run in DEBUG mode", function() DEBUG=1 end)
-cli:flag("-v, --version", "print the version and exits", function()
-			print("Harvest version 0.7") os.exit(0) end)
-
-local args, err = cli:parse(arg)
-
-if not args and err then
-   -- print(cli.name .. ': command not recognized')
-   print(err)
-   os.exit(1)
-elseif args then -- default command is scan
-   -- recursive
-   local fattr = lfs.attributes
-   for file in lfs.dir(args.path) do
-	  if not (file == '.' or file == '..') then
-		 attr = fattr(file)
-		 -- I(attr)
-		 if type(attr) == 'table' then
-			if attr.mode == "directory" then
-			   local analysis = fuzzyguess( analyse_path(file, nil, 3) )
-			   collectgarbage'collect'
-			   print("dir,"..analysis.guess..","..attr.modification..",,"..file)
-			else
-			   local fileguess =
-				  file_extension_list[ extparser(file) ] or 'other'
-			   attr = fattr(file)
-			   print("file,"..fileguess..","..attr.modification..","
-						..attr.size..","..file)
-			end
-		 end
+local function show_selection(args, selection)
+   if args.output == 'human' then
+      stderr(align('LINE,MODE,TYPE,YYYY-MM-DD,SIZE,NAME'))
+      stderr(align('----,----,----,----------,----,----'))
+   end
+   -- for k,v in pairs(selection) do
+   for k=1, #selection do
+	  local v = selection[k]
+      if args.output == 'csv' then
+         stdout(v.type..","..v.guess..","..v.modification..","
+                   ..v.size..","..v.name)
+         -- human friendly formatting
+      else
+		 local size = v.size
+		 local guess = v.guess
+		 if v.type == 'dir' then size = '/' end
+		 if v.guess == 'other' then guess = '? ? ?' end
+		 if v.guess == 'archiv' then guess = 'archv' end
+         stdout(align(k..","..v.type..","..guess..","
+                         ..os.date('%Y-%m-%d',v.modification)..","
+                         ..size..","..v.name))
 	  end
    end
 end
+
+-- CLI: command line argument parsing
+
+cli:set_name("harvest")
+cli:set_description('manage large collections of files and directories')
+
+cli:option("-p, --path=PATH", "", lfs.currentdir())
+cli:option("-t, --type=TYPE", "text, audio, video, code, etc.")
+cli:option("-o, --output=FORMAT", "csv, json", 'human')
+cli:flag("--dir", "select only directories")
+cli:flag("--file", "select only files")
+cli:flag("-d", "run in DEBUG mode", function() DEBUG=1 end)
+cli:flag("-v, --version", "print the version and exits", function()
+			print("Harvest version 0.7") os.exit(0) end)
+cli:flag("-n, --dryrun", "show actions, don't execute commands", false)
+
+cli:command("mv", "move the selection to destination")
+   :argument('dest','folder to which the selection will be moved')
+   :action(function(options)
+		 print("TODO: mv to destination: "..options.dest)
+		  end)
+
+cli:command("cp", "copy the selection to destination")
+   :argument('dest','folder to which the selection will be moved')
+   :action(function(options)
+		 print("TODO: mv to destination: "..options.dest)
+		  end)
+
+local args, err = cli:parse(arg)
+local selection = { }
+
+-- MAIN()
+if not args and err then
+   -- print(cli.name .. ': command not recognized')
+   stderr(err)
+   os.exit(1)
+elseif args then -- default command is scan
+   stderr("Harvest "..args.path)
+   if args.type then stderr("type: "..args.type) end
+
+   -- recursive
+   local fattr = lfs.attributes
+   for file in lfs.dir(args.path) do
+      local filepath = args.path.."/"..file
+      D("analyze "..filepath)
+      if not (file == '.' or file == '..') then
+         local attr = fattr(filepath)
+         attr.name = file
+         I(attr)
+         if type(attr) == 'table' then -- safety to os stat
+            if attr.mode == "directory" then
+               attr.type = 'dir'
+               attr.guess = fuzzyguess(
+                  analyse_path(args.path, filepath, 3) ).guess
+               collectgarbage'collect' -- recursion costs memory
+			   if filter_selection(args,attr) then
+				  table.insert(selection, attr)
+			   end
+            else
+               attr.type = 'file'
+               attr.guess =
+                  file_extension_list[ extparser(filepath) ]
+                  or 'other'
+			   if filter_selection(args,attr) then
+				  table.insert(selection, attr)
+			   end
+            end
+         end
+      end
+   end
+end
+
+-- print to screen
+print(os.date())
+show_selection(args,selection)
