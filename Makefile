@@ -24,14 +24,14 @@ luastatic:
 	CC=$(CC) AR=$(AR) INCLUDE="$(INCLUDE)" LDADD="$(LDADD)" CFLAGS="$(CFLAGS)" make -C src
 
 devuan-luajit-shared: luastatic
-	$(CC) -o harvest $(CFLAGS) $(INCLUDE) src/harvest.lua.c src/lfs.a $(LDADD)
+	$(CC) -o harvest $(CFLAGS) $(INCLUDE) src/harvest.luastatic.c src/lfs.a $(LDADD)
 
 devuan-luajit-static: LDADD = src/luajit/src/libluajit.a /usr/lib/${ARCH}-linux-musl/libc.a
 devuan-luajit-static: INCLUDE = -I luajit/src
 devuan-luajit-static: CC = musl-gcc
 devuan-luajit-static: CFLAGS = -Os -static
 devuan-luajit-static: luastatic luajit
-	$(CC) -static -o harvest $(CFLAGS) -I src/luajit/src src/harvest.lua.c src/lfs.a $(LDADD) -lm
+	$(CC) -static -o harvest $(CFLAGS) -I src/luajit/src src/harvest.luastatic.c src/lfs.a $(LDADD) -lm
 
 mingw32-luajit-static: CC=x86_64-w64-mingw32-gcc
 mingw32-luajit-static: AR=x86_64-w64-mingw32-ar
@@ -39,7 +39,7 @@ mingw32-luajit-static: INCLUDE = -I luajit/src
 mingw32-luajit-static: LDADD = src/luajit/src/libluajit.a
 mingw32-luajit-static: LDLIBS=-lm
 mingw32-luajit-static: luastatic luajit-win
-	$(CC) -static -o harvest.exe $(CFLAGS) $(INCLUDE) src/harvest.lua.o src/lfs.a $(LDADD)
+	$(CC) -static -o harvest.exe $(CFLAGS) $(INCLUDE) src/harvest.luastatic.c src/lfs.a $(LDADD)
 
 win32: mingw32-luajit-static
 
@@ -51,7 +51,7 @@ clean-luajit:
 
 clean:
 	rm -f src/*.o src/*.a
-	rm -f src/harvest.lua.c
+	rm -f src/harvest.luastatic.c
 
 # install:
 # 	install -d $(PREFIX)/share/harvest/file-extension-list/render/

@@ -10,7 +10,18 @@ Harvest is designed to operate on folders containing files without exploding the
 
 ## :floppy_disk: Installation
 
-Harvest requires `zsh` to be installed and works on all desktop platforms supported by it (GNU/Linux, Apple/OSX and MS/Windows).
+Harvest works on all desktop platforms supported by it (GNU/Linux, Apple/OSX and MS/Windows).
+
+To be built from source, Harvest requires the following packages to be installed in your system:
+- pkg-config
+- luarocks
+- libluajit-5.1-dev
+
+Then inside the luarocks package manager it should be installed luastatic and inspect:
+```
+sudo luarocks install luastatic
+sudo luarocks install inspect
+```
 
 From inside the source, just type:
 
@@ -22,13 +33,8 @@ sudo make install
 ``` 
 to install into `/usr/local/share/harvest`.
 
-
 The environmental variable `HARVEST_PREFIX` can be set when running harvest to indicate different installation directories. Using harvest on different operating systems than GNU/Linux/BSD may require tweaking of this variable.
 
-Other required applications are likely to be already found on your system:
-```
-zsh awk grep xclip
-```
 Extended functionalities can be attained by installing [TMSU](https://tmsu.org/) (see below "Advanced Usage").
 
 ## :video_game: Usage
