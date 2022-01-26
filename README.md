@@ -1,16 +1,29 @@
-# Harvest - a tool to classify large collections of files and directories
+# Harvest - manage large collections of files and dirs
+
+Harvest makes it easy to list files and folders by type and copy or
+move them around.
 
 ![Kant handle my swag](https://repository-images.githubusercontent.com/77449851/9d50d480-9766-11ea-98a2-c5aa84501c6e)
 
-Harvest is a compact, fast and portable software that can scan files and folders to recognise their typology. Scanning is based on file extensions and a simple fuzzy logic analysis of folder contents to recognise if they are related to video, audio or text materials.
+It is compact and portable software that can scan files and folders to
+recognise their typology. Scanning is based on [file
+extensions](https://github.com/dyne/file-extension-list) and a simple
+fuzzy logic analysis of **folder contents** (not just files) to
+recognise if they are related to video, audio or text materials, etc.
 
-Harvest makes it easy to list folders by type or year, to move them or to categorize them for tagged filesystems. It can process approximately 1GB of stored files per second and is operated from the console terminal.
+It is **fast**: it can process approximately 1GB of stored files per
+second and is operated from the console terminal.
 
-Harvest is designed to operate on folders containing files without exploding the files around: it assesses the typology of a folder from the files contained, but does not move the files outside of that folder. For instance it works very well to move around large collections of downloaded torrent folders.
+Harvest operates on folders containing files without exploding the
+files around: it assesses the typology of a folder from the files
+contained, but does not move the files outside of that folder. For
+instance it works very well to move around large collections of
+downloaded torrent folders.
 
 ## :floppy_disk: Installation
 
-Harvest works on all desktop platforms supported by it (GNU/Linux, Apple/OSX and MS/Windows).
+Harvest works on all desktop platforms supported by it (GNU/Linux,
+Apple/OSX and MS/Windows).
 
 To be built from source, Harvest requires the following packages to be installed in your system:
 - pkg-config
@@ -31,11 +44,7 @@ git submodule update --init --recursive
 make
 sudo make install
 ``` 
-to install into `/usr/local/share/harvest`.
-
-The environmental variable `HARVEST_PREFIX` can be set when running harvest to indicate different installation directories. Using harvest on different operating systems than GNU/Linux/BSD may require tweaking of this variable.
-
-Extended functionalities can be attained by installing [TMSU](https://tmsu.org/) (see below "Advanced Usage").
+to install into `/usr/local/bin/harvest`.
 
 ## :video_game: Usage
 
@@ -107,9 +116,11 @@ For more info about this solution see the [hvst readme documentation](https://gi
 
 #### Using TMSU
 
-Support of tagged filesystems is an old feature, easy to bring back.
+Support of tagged filesystems is an old feature present in the
+[harvest shell implementation](https://github.com/dyne/harvest/tree/master/shell) and
+it is easy to bring back.
 
-if anyone wants it back just say, for more information see the [TMSU project](https://github.com/oniony/TMSU).
+If anyone wants it back just say, for more information see the [TMSU project](https://github.com/oniony/TMSU).
 
 ## :heart_eyes: Acknowledgements
 
