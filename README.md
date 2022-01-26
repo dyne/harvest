@@ -1,6 +1,6 @@
 # Harvest - a tool to classify large collections of files and directories
 
-[![software by Dyne.org](https://files.dyne.org/software_by_dyne.png)](http://www.dyne.org)
+![Kant handle my swag](https://repository-images.githubusercontent.com/77449851/9d50d480-9766-11ea-98a2-c5aa84501c6e)
 
 Harvest is a compact, fast and portable software that can scan files and folders to recognise their typology. Scanning is based on file extensions and a simple fuzzy logic analysis of folder contents to recognise if they are related to video, audio or text materials.
 
@@ -39,96 +39,86 @@ Extended functionalities can be attained by installing [TMSU](https://tmsu.org/)
 
 ## :video_game: Usage
 
-To scan all files and directories found in a folder:
 ```
-harvest /path/to/folder
-```
-To scan only the files (non recursive):
-```
-harvest /path/to/folder files
+Usage: harvest [OPTIONS]
+
+OPTIONS: 
+  -p, --path=PATH     (default is current position)
+  -t, --type=TYPE     text, audio, video, code, etc.
+  -o, --output=FORMAT csv, json (default: human)
+  --dir               select only directories
+  --file              select only files
+  -d                  run in DEBUG mode
+  -v, --version       print the version and exits
 ```
 
-After scanning, results are print to screen, but also saved in a local cache. Then it is possible to list all video hits in the most recent scan:
+
+To list all image files found in Downloads:
 ```
-harvest ls video
+harvest -p ~/Downloads -t image --file
 ```
 
-The `harvest ls` command will list all hits comma separated per line so that it can be piped and parsed into other programs to take further actions; the CSV format is:
+To list all video directories at current filesystem position:
 ```
-[dir|file],TYPE,year,path_to_file
-```
-The `TYPE` field is one of the strings returned by `ls file-extension-list/data` which is the catalogue of file types maintained in the [file-extension-list project](https://github.com/dyne/file-extension-list).
-
-To proceed moving harvested audio files to another "Sound" folder in home:
-```
-harvest mv audio ~/Sound/
+harvest -t video --dir
 ```
 
-To move all harvested files to a new destination folder (destination must already exist and be a writable directory):
+To list all files and dirs containing reading materials:
 ```
-harvest mv all ~/destination
+harvest -t text
 ```
 
-So for instance a simple script using harvest to move all downloaded audio and video files in different home folders would look like:
+To have a list of supported types use `harvest -t list` at any moment
+```
+Supported types:
+ code image video book text font web archiv sheet exec slide audio
+```
+For more information about types recognized see the catalogue of file
+types we maintain in the [file-extension-list
+project](https://github.com/dyne/file-extension-list).
+
+### Copy or move
+
+So far we have seen how to run non-destructive operations, now we come
+to **apply actual changes to the filesystem**.
+
+#### Using shell scripts
+
+Another simplier solution to move or copy files around is to use shell scripting on the command-line or inside your own scripts.
+
+For example, here is a short concatenation of commands that will copy all harvested image files and directories to /tmp/images/
 ```bash
-#!/bin/sh
-harvest  ~/Downloads
-harvest mv video ~/Video
-harvest mv audio ~/Music
+harvest -t image -o csv | cut -d, -f5 | xargs -I{} cp -v {} /tmp/images
 ```
 
-Or a short concatenation of commands that will delete all harvested code files and directories:
-```bash
-harvest ls code | cut -d, -f4 | xargs rm -rf
+The comma separated list (CSV) output of harvest is organized like this:
+```
+FILE | DIR, TYPE, TIMESTAMP, SIZE, FILENAME
 ```
 
-Or a Zsh script to move all files into "Archive/YEAR" to distribute files according to the year in which they were created:
-```bash
-#!/usr/bin/env zsh
-for i in ${(f)"$(harvest ls)"}; do
-	year=${i[(ws:,:)3]}
-	file=${i[(ws:,:)4]}
-	mkdir -p ~/Archive/$year
-	mv $file ~/Archive/$year/
-done
-```
-In the previous script one can use the file type instead of the year by changing `year=${i[(ws:,:)3]}` into `type=${i[(ws:,:)2]}`. To navigate tags however is not necessary to modify the filesystem contents: in order to accomplish that, the next section will illustrate the use of a virtual tagged filesystem.
+#### Using hvst
 
-## :telescope: Advanced usage
+One solution is to use a practical wrapper called
+[hvst](https://git.coom.tech/gg1234/hvst) which supports distributing
+files to destination folders named after Perl expressions based on
+file attributes, for instance date.
 
-To allow the navigation of files in the style of a [Semantic Filesystem](https://en.wikipedia.org/wiki/Semantic_file_system), Harvest supports [TMSU](https://tmsu.org/), an small utility to maintain a database of tags inside an hidden directory `.tmsu` in each harvested folder.
+For more info about this solution see the [hvst readme documentation](https://git.coom.tech/gg1234/hvst).
 
-To initialise a `tmsu` database bootstrapped with harvest's tags in the currently harvested folder, do:
-```
-harvest tmsu
-```
-Directories indexed this way can then be "mounted" (using fuse) and navigated:
-```
-harvest mount
-```
-Inside the `$harvest` hidden subfolder (pointing to `.mnt` inside the folder) tags will become folders containing symbolic links to the actual tagged files. Any filemananger following symbolic links can be used to navigate tags, also tags will be set as bookmarks in graphical filemanagers (GTK3 supported).
+#### Using TMSU
 
-In addition to the tags view, there is also a queries folder in which you can run view queries by listing or creating new folders:
-```
-ls -l "$harvest/queries/text and 2018"
-```
- This automatic creation of the query folders makes it possible to use new file queries within the file chooser of a graphical program simply by typing the query in. Unwanted query folders can be safely removed.
+Support of tagged filesystems is an old feature, easy to bring back.
 
-Limited tag management is also possible via the virtual filesystem. For example one can remove specific tags from a file by deleting the symbolic link in the tag folder, or delete a tag by performing a recursive delete.
-
-To unmount all TMSU semantic filesystems currently mounted, just do:
-```
-harvest umount
-```
-Further TMSU operations are possible operating directly from inside the directories that have been indexed using `harvest tmsu`, for more information see `tmsu help`. For instance, TMSU also detects duplicate files using `tmsu dupes`.
-
+if anyone wants it back just say, for more information see the [TMSU project](https://github.com/oniony/TMSU).
 
 ## :heart_eyes: Acknowledgements
 
-Harvest is Copyright (C) 2014-2020 by the Dyne.org Foundation
+[![software by Dyne.org](https://files.dyne.org/software_by_dyne.png)](http://www.dyne.org)
+
+Harvest is Copyright (C) 2014-2022 by the Dyne.org Foundation
 
 Harvest is designed, written and maintained by Denis "Jaromil" Roio
-with contributions by Puria Nafisi Azizi.
+with contributions by Puria Nafisi Azizi and G Gundam.
 
 This source code is free software; you can redistribute it and/or
 modify it under the terms of the GNU Public License as published by

@@ -156,13 +156,13 @@ cli:set_name("harvest")
 cli:set_description('manage large collections of files and directories')
 
 cli:option("-p, --path=PATH", "", lfs.currentdir())
-cli:option("-t, --type=TYPE", "text, audio, video, code, etc.")
-cli:option("-o, --output=FORMAT", "csv, json", 'human')
+cli:option("-t, --type=TYPE", "text, audio, video, etc. (-t list)")
+cli:option("-o, --output=FORMAT", "csv", 'human')
 cli:flag("--dir", "select only directories")
 cli:flag("--file", "select only files")
 cli:flag("-d", "run in DEBUG mode", function() DEBUG=1 end)
 cli:flag("-v, --version", "print the version and exits", function()
-			print("Harvest version 0.7") os.exit(0) end)
+			print("Harvest version 0.8") os.exit(0) end)
 
 local args, err = cli:parse(arg)
 local selection = { }
