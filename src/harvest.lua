@@ -30,15 +30,6 @@ local align = require'align'
 local function stderr(_msg) io.stderr:write(_msg..'\n') end
 local function stdout(_msg) io.stdout:write(_msg..'\n') end
 
--- debug
-DEBUG=0
-local inspect = require'inspect'
-local function I(o) 
-   if DEBUG > 0 then stderr( inspect.inspect(o) ) end end
-local function D(s)
-   if DEBUG > 0 then stderr(s) end
-end
-
 -- # fuzzy thresholds
 -- #
 -- # this is the most important section to tune the selection: the higher
@@ -76,13 +67,11 @@ local function analyse_path(basedir, pathname, level)
    local target = pathname or basedir
    local curlev = level or 1
    local scores = { other = { } }
-   -- D("analyse: "..target)
    local path
    for path in lfs.dir(target) do
 	  if not (path == '.' or path == '..') then
 		 local tarpath = target..'/'..path
 		 if lfs.attributes(tarpath,"mode") == "directory" then
-			D("found dir:\t"..tarpath.." ("..curlev..")")
 			analyse_path(basedir, tarpath, curlev+1)
 
 	 else -- file in subdir
@@ -90,7 +79,6 @@ local function analyse_path(basedir, pathname, level)
 			if ftype then
 			   if not scores[ftype] then scores[ftype] = { } end
 			   table.insert(scores[ftype], tarpath)
-			   -- D("found "..ftype..":\t"..tarpath)
 			else
 			   table.insert(scores['other'], tarpath)
 			end
@@ -161,7 +149,7 @@ cli:option("-o, --output=FORMAT", "csv", 'human')
 cli:flag("--dir", "select only directories")
 cli:flag("--file", "select only files")
 cli:flag("-d", "run in DEBUG mode", function() DEBUG=1 end)
-cli:flag("-v, --version", "print the version and exits", function()
+cli:flag("-v, --version", "print the version and exit", function()
 			print("Harvest version 0.8") os.exit(0) end)
 
 local args, err = cli:parse(arg)
@@ -196,11 +184,10 @@ elseif args then -- default command is scan
    local fattr = lfs.attributes
    for file in lfs.dir(args.path) do
       local filepath = args.path.."/"..file
-      D("analyze "..filepath)
       if not (file == '.' or file == '..') then
          local attr = fattr(filepath)
          attr.name = file
-         I(attr)
+         -- I(attr)
          if type(attr) == 'table' then -- safety to os stat
             if attr.mode == "directory" then
                attr.type = 'dir'

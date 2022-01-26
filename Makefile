@@ -11,34 +11,35 @@ LDADD ?= /usr/lib/x86_64-linux-gnu/libluajit-5.1.a -lm -ldl
 
 MUSL_LDADD ?= /usr/lib/${ARCH}-linux-musl/libc.a
 
-all: devuan-luajit-shared
+all: shared
 
-luajit:
-	make -C src/luajit CC=$(CC) CFLAGS="$(CFLAGS)"
-
-
-luajit-win:
-	make -C src/luajit HOST_CC=gcc CC=$(CC) CFLAGS="$(CFLAGS)" TARGET_SYS=Windows
-
-luastatic:
+shared:
 	CC=$(CC) AR=$(AR) INCLUDE="$(INCLUDE)" LDADD="$(LDADD)" CFLAGS="$(CFLAGS)" make -C src
-
-devuan-luajit-shared: luastatic
 	$(CC) -o harvest $(CFLAGS) $(INCLUDE) src/harvest.luastatic.c src/lfs.a $(LDADD)
 
-devuan-luajit-static: LDADD = src/luajit/src/libluajit.a /usr/lib/${ARCH}-linux-musl/libc.a
-devuan-luajit-static: INCLUDE = -I luajit/src
-devuan-luajit-static: CC = musl-gcc
-devuan-luajit-static: CFLAGS = -Os -static
-devuan-luajit-static: luastatic luajit
-	$(CC) -static -o harvest $(CFLAGS) -I src/luajit/src src/harvest.luastatic.c src/lfs.a $(LDADD) -lm
+static: LDADD = /usr/lib/${ARCH}-linux-gnu/libluajit-5.1.a /usr/lib/${ARCH}-linux-musl/libc.a
+static: CC = musl-gcc
+static: CFLAGS = -O3 --fast-math -static
+static:
+	CC=$(CC) AR=$(AR) INCLUDE="$(INCLUDE)" LDADD="$(LDADD)" CFLAGS="$(CFLAGS)" make -C src static
+	$(CC) -static -o harvest $(CFLAGS) $(INCLUDE) src/harvest.luastatic.c src/lfs.a $(LDADD) -lm
 
-mingw32-luajit-static: CC=x86_64-w64-mingw32-gcc
-mingw32-luajit-static: AR=x86_64-w64-mingw32-ar
-mingw32-luajit-static: INCLUDE = -I luajit/src
-mingw32-luajit-static: LDADD = src/luajit/src/libluajit.a
-mingw32-luajit-static: LDLIBS=-lm
-mingw32-luajit-static: luastatic luajit-win
+luajit-win64: CC=x86_64-w64-mingw32-gcc
+luajit-win64: AR=x86_64-w64-mingw32-ar
+luajit-win64:
+	if ! [ -r luajit.tar.gz ]; then curl -L https://luajit.org/download/LuaJIT-2.1.0-beta3.tar.gz > luajit.tar.gz; fi
+	if ! [ -d luajit ]; then mkdir -p luajit && tar -C luajit -xf luajit.tar.gz ; fi
+	mkdir -p luajit/include && cp -ra luajit/*/src/*.h luajit/include/
+	make -C luajit/Lua* HOST_CC=gcc CC=$(CC) CFLAGS="$(CFLAGS)" TARGET_SYS=Windows BUILDMODE=static
+	cp luajit/Lua*/src/libluajit.a luajit/
+
+win64: CC=x86_64-w64-mingw32-gcc
+win64: AR=x86_64-w64-mingw32-ar
+win64: INCLUDE = -I luajit/include
+win64: LDADD = luajit/libluajit.a
+win64: LDLIBS=-lm
+win64: luajit-win64
+	CC=$(CC) AR=$(AR) INCLUDE="$(INCLUDE)" LDADD="$(LDADD)" CFLAGS="$(CFLAGS)" make -C src static
 	$(CC) -static -o harvest.exe $(CFLAGS) $(INCLUDE) src/harvest.luastatic.c src/lfs.a $(LDADD)
 
 win32: mingw32-luajit-static
