@@ -1,6 +1,6 @@
 #!/usr/bin/env luajit
 
--- Copyright (C) 2014-2020 Dyne.org Foundation
+-- Copyright (C) 2014-2022 Dyne.org Foundation
 
 -- Harvest is designed, written and maintained by Denis "Jaromil" Roio
 
@@ -132,21 +132,21 @@ local function show_selection(args, selection)
    end
    -- for k,v in pairs(selection) do
    for k=1, #selection do
-	  local v = selection[k]
+      local v = selection[k]
       if args.output == 'csv' then
          stdout(v.type..","..v.guess..","..v.modification..","
-                   ..v.size..","..v.name)
+		..v.size..","..v.name)
          -- human friendly formatting
       else
-		 local size = v.size
-		 local guess = v.guess
-		 if v.type == 'dir' then size = '/' end
-		 if v.guess == 'other' then guess = '? ? ?' end
-		 if v.guess == 'archiv' then guess = 'archv' end
+	 local size = v.size
+	 local guess = v.guess
+	 if v.type == 'dir' then size = '/' end
+	 if v.guess == 'other' then guess = '? ? ?' end
+	 if v.guess == 'archiv' then guess = 'archv' end
          stdout(align(k..","..v.type..","..guess..","
-                         ..os.date('%Y-%m-%d',v.modification)..","
-                         ..size..","..v.name))
-	  end
+		      ..os.date('%Y-%m-%d',v.modification)..","
+		      ..size..","..v.name))
+      end
    end
 end
 
@@ -163,19 +163,6 @@ cli:flag("--file", "select only files")
 cli:flag("-d", "run in DEBUG mode", function() DEBUG=1 end)
 cli:flag("-v, --version", "print the version and exits", function()
 			print("Harvest version 0.7") os.exit(0) end)
-cli:flag("-n, --dryrun", "show actions, don't execute commands", false)
-
-cli:command("mv", "move the selection to destination")
-   :argument('dest','folder to which the selection will be moved')
-   :action(function(options)
-		 print("TODO: mv to destination: "..options.dest)
-		  end)
-
-cli:command("cp", "copy the selection to destination")
-   :argument('dest','folder to which the selection will be moved')
-   :action(function(options)
-		 print("TODO: mv to destination: "..options.dest)
-		  end)
 
 local args, err = cli:parse(arg)
 local selection = { }
@@ -187,6 +174,22 @@ if not args and err then
    os.exit(1)
 elseif args then -- default command is scan
    stderr("Harvest "..args.path)
+   if args.type == 'list' then
+      local list = { }
+      for k,v in pairs(file_extension_list) do
+	 table.insert(list, v)
+      end
+      print'Supported types:'
+      local hash = { }
+      for _,v in ipairs(list) do
+	 if not hash[v] then
+	    io.stdout:write(' '..v)
+	    hash[v] = true
+	 end
+      end
+      io.stdout:write('\n')
+      os.exit(0)
+   end
    if args.type then stderr("type: "..args.type) end
 
    -- recursive
@@ -204,17 +207,17 @@ elseif args then -- default command is scan
                attr.guess = fuzzyguess(
                   analyse_path(args.path, filepath, 3) ).guess
                collectgarbage'collect' -- recursion costs memory
-			   if filter_selection(args,attr) then
-				  table.insert(selection, attr)
-			   end
+	       if filter_selection(args,attr) then
+		  table.insert(selection, attr)
+	       end
             else
                attr.type = 'file'
                attr.guess =
                   file_extension_list[ extparser(filepath) ]
                   or 'other'
-			   if filter_selection(args,attr) then
-				  table.insert(selection, attr)
-			   end
+	       if filter_selection(args,attr) then
+		  table.insert(selection, attr)
+	       end
             end
          end
       end
@@ -222,5 +225,5 @@ elseif args then -- default command is scan
 end
 
 -- print to screen
-print(os.date())
+stderr(os.date())
 show_selection(args,selection)
