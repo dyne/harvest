@@ -1,5 +1,5 @@
 [submodule "zuper"]
-	path = zuper
+	path = shell/zuper
 	url = https://github.com/dyne/zuper
 [submodule "file-extension-list"]
 	path = file-extension-list
