@@ -1,0 +1,213 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+use feature 'say';
+use Getopt::Long;
+
+# run harvest and parse its output
+sub harvest {
+  my @lines = `harvest --file 2> /dev/null | sed 1d`; # TODO - consume its CSV output for greater accuracy
+  my @files;
+  # replace '? ? ?' with misc
+  for (@lines) {
+    s/\? \? \?/misc /;
+    /^(\d+)\s+(\w+)\s+(\w+)\s+(\d+-\d{2}-\d{2})\s+(\d+)\s+(.*)$/;
+    my $file = {
+      i  => $1,
+      nt => $2,
+      t  => $3,
+      d  => $4,
+      s  => $5,
+      n  => $6
+    };
+    $file->{n} =~ s/\s*$//;
+    ($file->{year}, $file->{month}, $file->{day}) = split(/-/, $file->{d});
+    push @files, $file;
+  }
+  return @files;
+}
+
+# evaluate a destination expression
+sub expr {
+  my $file = shift;
+  my $expr = shift;
+  if ($expr =~ /^@/) {
+    # leading '@' means eval as code
+    $expr =~ s/^@//;
+    $_ = $file;
+    my $dest = eval($expr);
+    $dest =~ s/^~/\$HOME/; # do tilde expansion manually
+    return $dest;
+  } else {
+    # just a string
+    return $expr
+  }
+}
+
+# list files by type
+sub ls {
+  my $type = shift;
+  return grep { $_->{t} eq $type } harvest();
+}
+
+# list types of files and their count
+sub types {
+  my %count;
+  for (harvest()) {
+    if (exists $count{$_->{t}}) {
+      $count{$_->{t}}++;
+    } else {
+      $count{$_->{t}} = 1;
+    }
+  }
+  my @pairs;
+  while (my @p = each %count) {
+    push @pairs, \@p;
+  }
+  return \@pairs;
+}
+
+# copy files by type
+sub cp {
+  my $type = shift;
+  my $dest_expr = shift;
+  my $verbose = shift;
+  my $recon = shift;
+  my @files = ls $type;
+  for (@files) {
+    my $dest = expr($_, $dest_expr);
+    my $mkdir = qq[mkdir -p "$dest"];
+    say $mkdir if ($verbose || $recon);
+    system $mkdir unless $recon;
+    my $command = qq[cp "$_->{n}" "$dest"];
+    say $command if ($verbose || $recon);
+    system $command unless $recon;
+  }
+}
+
+# move files by type
+sub mv {
+  my $type = shift;
+  my $dest_expr = shift;
+  my $verbose = shift;
+  my $recon = shift;
+  my @files = ls $type;
+  for (@files) {
+    my $dest = expr($_, $dest_expr);
+    my $mkdir = qq[mkdir -p "$dest"];
+    say $mkdir if ($verbose || $recon);
+    system $mkdir unless $recon;
+    my $command = qq[mv "$_->{n}" "$dest"];
+    say $command if ($verbose || $recon);
+    system $command unless $recon;
+  }
+}
+
+# print file metadata like harvest does
+sub print_file {
+  my $file = shift;
+  printf("%-7d%-7s%-7s%-11s%-7s %s\n",
+    $file->{i},
+    $file->{nt},
+    $file->{t},
+    $file->{d},
+    $file->{s},
+    $file->{n}
+  );
+}
+
+my $help = q{A wrapper around dyne/harvest to fill in missing functionality
+
+Usage:
+
+  hvst
+  hvst help
+  hvst ls [TYPE]
+  hvst types
+  hvst cp <TYPE> <DEST> [OPTION]...
+  hvst mv <TYPE> <DEST> [OPTION]...
+
+Examples:
+
+  # Display help message.
+  hvst help
+
+  # List files in current directory.
+  hvst
+
+  # Also list files in current directory.
+  hvst ls
+
+  # List only audio files.
+  hvst ls audio
+
+  # List types of files that exist in this directory and their counts.
+  hvst types
+
+  # Copy all images to ~/Pictures.
+  hvst cp image ~/Pictures
+
+  # Copy all images to ~/Pictures and be verbose.
+  hvst cp image ~/Pictures --verbose
+
+  # Show what would happen if we tried to move all images to ~/Pictures/YYYY/MM.
+  hvst mv image '@"~/Pictures/$_->{year}/$_->{month}"' --recon
+
+  # Move all images to ~/Pictures/YYYY/MM.
+  hvst mv image '@"~/Pictures/$_->{year}/$_->{month}"'
+
+  # Both cp and mv commands take --verbose and --recon (or -v and -r for short).
+  # --verbose means print the shell command.
+  # --recon   means print the shell command but don't execute it.
+};
+
+sub main {
+  if (@ARGV) {
+    my $command = shift @ARGV;
+    $_{verbose} = '';
+    $_{recon} = '';
+    if ($command eq 'cp') {
+      GetOptions(\%_, "verbose|v", "recon|r");
+      my ($type, $dest) = @ARGV;
+      cp($type, $dest, $_{verbose}, $_{recon});
+    } elsif ($command eq 'mv') {
+      GetOptions(\%_, "verbose|v", "recon|r");
+      my ($type, $dest) = @ARGV;
+      mv($type, $dest, $_{verbose}, $_{recon});
+    } elsif ($command eq 'ls') {
+      my ($type) = @ARGV;
+      my @files;
+      if ($type) {
+        @files = ls($type);
+      } else {
+        @files = harvest();
+      }
+      for (@files) {
+        print_file($_);
+      }
+    } elsif ($command eq 'types') {
+      my @types = sort { $b->[1] <=> $a->[1] } @{types()};
+      for (@types) {
+        printf(qq{%-8s%8d\n}, $_->[0], $_->[1]);
+      }
+    } elsif ($command eq "help" || $command eq "-h" || $command eq "--help") {
+      print $help;
+    } else {
+      warn("Command '$command' not recognized.");
+      return 1;
+    }
+  } else {
+    my @files = harvest();
+    for (@files) {
+      print_file($_);
+    }
+  }
+  return 0;
+}
+
+# https://stackoverflow.com/questions/707022/is-there-a-perl-equivalent-to-pythons-if-name-main
+unless (caller) {
+  exit main();
+}
+
+1;
