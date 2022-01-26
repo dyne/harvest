@@ -1,0 +1,43 @@
+name: Build harvest using gcc
+on: [push, pull_request]
+
+jobs:
+ shared:
+    strategy:
+      matrix:
+        os: [ubuntu-18.04, ubuntu-20.04]
+        version: [11]
+    runs-on: '${{ matrix.os }}'
+    name: 'Version: ${{ matrix.os }} / ${{ matrix.version }}'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: Set up GCC
+        uses: egor-tensin/setup-gcc@v1
+        with:
+          version: '${{ matrix.version }}'
+          platform: '${{ matrix.platform }}'
+          cc: 1
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          # install deps
+          sudo apt-get install --force-yes pkg-config luarocks libluajit-5.1-dev curl mingw-w64 mingw-w64-x86-64-dev
+          sudo luarocks install luastatic
+      - name: Build
+        run: |
+          make && mv harvest harvest.elf
+          make clean
+          make win64
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          draft: true
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            harvest.elf
+            harvest.exe
