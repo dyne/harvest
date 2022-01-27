@@ -63,16 +63,17 @@ local function extparser(arg)
 end
 
 -- recurse into directories
-local function analyse_path(basedir, pathname, level)
-   local target = pathname or basedir
-   local curlev = level or 1
+local function analyse_path(args, pathname, level)
+   local target = pathname or args.path
+   local curlev = tonumber(level or 1)
+   if curlev > tonumber(args.maxdepth) then return end
    local scores = { other = { } }
    local path
    for path in lfs.dir(target) do
 	  if not (path == '.' or path == '..') then
 		 local tarpath = target..'/'..path
 		 if lfs.attributes(tarpath,"mode") == "directory" then
-			analyse_path(basedir, tarpath, curlev+1)
+			analyse_path(args, tarpath, curlev+1)
 
 	 else -- file in subdir
 			local ftype = file_extension_list[ extparser(tarpath) ]
@@ -91,9 +92,11 @@ end
 local function fuzzyguess(scores)
    -- compute a very, very simple linear fuzzy logic for each
    local res = { guess = 'other',
-				 totals = { } }
-   for k,v in pairs(scores) do
-	  res.totals[k] = #v / (fuzzy[k] or fuzzy['other'])
+		 totals = { } }
+   if scores then
+      for k,v in pairs(scores) do
+	 res.totals[k] = #v / (fuzzy[k] or fuzzy['other'])
+      end
    end
    local max = 0
    for k,v in pairs(res.totals) do
@@ -146,6 +149,7 @@ cli:set_description('manage large collections of files and directories')
 cli:option("-p, --path=PATH", "", lfs.currentdir())
 cli:option("-t, --type=TYPE", "text, audio, video, etc. (-t list)")
 cli:option("-o, --output=FORMAT", "csv", 'human')
+cli:option("-m, --maxdepth=NUM", "max levels of recursion inside dirs", 3)
 cli:flag("--dir", "select only directories")
 cli:flag("--file", "select only files")
 cli:flag("-d", "run in DEBUG mode", function() DEBUG=1 end)
@@ -192,7 +196,7 @@ elseif args then -- default command is scan
             if attr.mode == "directory" then
                attr.type = 'dir'
                attr.guess = fuzzyguess(
-                  analyse_path(args.path, filepath, 3) ).guess
+                  analyse_path(args, filepath) ).guess
                collectgarbage'collect' -- recursion costs memory
 	       if filter_selection(args,attr) then
 		  table.insert(selection, attr)
@@ -212,5 +216,4 @@ elseif args then -- default command is scan
 end
 
 -- print to screen
-stderr(os.date())
 show_selection(args,selection)
