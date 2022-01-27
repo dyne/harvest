@@ -13,6 +13,10 @@ MUSL_LDADD ?= /usr/lib/${ARCH}-linux-musl/libc.a
 
 all: shared
 
+build-deps:
+	apt install pkg-config luarocks libluajit-5.1-dev
+	sudo luarocks install luastatic
+
 shared:
 	CC=$(CC) AR=$(AR) INCLUDE="$(INCLUDE)" LDADD="$(LDADD)" CFLAGS="$(CFLAGS)" make -C src
 	$(CC) -o harvest $(CFLAGS) $(INCLUDE) src/harvest.luastatic.c src/lfs.a $(LDADD)
