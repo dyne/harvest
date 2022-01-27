@@ -16,3 +16,7 @@ static:
 	$(AR) rcs lfs.a lfs.o
 	-CC="" luastatic $(SOURCES) lfs.a -static $(INCLUDES)
 	$(CC) -c $(INCLUDE) $(CFLAGS) harvest.luastatic.c
+
+import-extensions:
+	lua import_file_extension_list.lua
+
