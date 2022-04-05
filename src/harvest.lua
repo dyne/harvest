@@ -1,6 +1,6 @@
 #!/usr/bin/env luajit
 
--- Copyright (C) 2014-2020 Dyne.org Foundation
+-- Copyright (C) 2014-2022 Dyne.org Foundation
 
 -- Harvest is designed, written and maintained by Denis "Jaromil" Roio
 
@@ -30,15 +30,6 @@ local align = require'align'
 local function stderr(_msg) io.stderr:write(_msg..'\n') end
 local function stdout(_msg) io.stdout:write(_msg..'\n') end
 
--- debug
-DEBUG=0
-local inspect = require'inspect'
-local function I(o) 
-   if DEBUG > 0 then stderr( inspect.inspect(o) ) end end
-local function D(s)
-   if DEBUG > 0 then stderr(s) end
-end
-
 -- # fuzzy thresholds
 -- #
 -- # this is the most important section to tune the selection: the higher
@@ -59,7 +50,7 @@ local fuzzy = {
 }
 
 -- https://github.com/dyne/file-extension-list
-local file_extension_list = { ["3dm"] = "image", ["3ds"] = "image", ["3g2"] = "video", ["3gp"] = "video", ["7z"] = "archiv", a = "archiv", aac = "audio", aaf = "video", ai = "image", aiff = "audio", ape = "audio", apk = "archiv", ar = "archiv", asf = "video", au = "audio", avchd = "video", avi = "video", azw = "book", azw1 = "book", azw3 = "book", azw4 = "book", azw6 = "book", bat = "exec", bin = "exec", bmp = "image", bz2 = "archiv", c = "code", cab = "archiv", cbr = "book", cbz = "book", cc = "code", class = "code", clj = "code", command = "exec", cpio = "archiv", cpp = "code", crx = "exec", cs = "code", css = "web", csv = "sheet", cxx = "code", dds = "image", deb = "archiv", diff = "code", dmg = "archiv", doc = "text", docx = "text", drc = "video", dwg = "image", dxf = "image", ebook = "text", egg = "archiv", el = "code", eot = "font", eps = "image", epub = "book", exe = "exec", flac = "audio", flv = "video", gif = "image", go = "code", gpx = "image", gsm = "audio", gz = "archiv", h = "code", html = "code", ics = "sheet", iso = "archiv", it = "audio", jar = "archiv", java = "code", jpeg = "image", jpg = "image", js = "code", kml = "image", kmz = "image", less = "web", lha = "archiv", log = "text", lua = "code", m = "code", m2v = "video", m3u = "audio", m4 = "code", m4a = "audio", m4p = "video", m4v = "video", mar = "archiv", max = "image", md = "text", mid = "audio", mkv = "video", mng = "video", mobi = "book", mod = "audio", mov = "video", mp2 = "video", mp3 = "audio", mp4 = "video", mpa = "audio", mpe = "video", mpeg = "video", mpg = "video", mpv = "video", msg = "text", msi = "exec", mxf = "video", nsv = "video", odp = "slide", ods = "sheet", odt = "text", ogg = "video", ogm = "video", ogv = "video", org = "text", otf = "font", pages = "text", pak = "archiv", patch = "code", pdf = "text", pea = "archiv", php = "code", pl = "code", pls = "audio", png = "image", po = "code", ppt = "slide", ps = "image", psd = "image", py = "code", qt = "video", ra = "audio", rar = "archiv", rb = "code", rm = "video", rmvb = "video", roq = "video", rpm = "archiv", rs = "code", rst = "text", rtf = "text", s3m = "audio", s7z = "archiv", scss = "web", sh = "exec", shar = "archiv", sid = "audio", srt = "video", svg = "image", svi = "video", swift = "code", tar = "archiv", tbz2 = "archiv", tex = "text", tga = "image", tgz = "archiv", thm = "image", tif = "image", tiff = "image", tlz = "archiv", ttf = "font", txt = "text", vb = "code", vcf = "sheet", vcxproj = "code", vob = "video", war = "archiv", wasm = "web", wav = "audio", webm = "video", webp = "image", whl = "archiv", wma = "audio", wmv = "video", woff = "font", woff2 = "font", wpd = "text", wps = "text", xcf = "image", xcodeproj = "code", xls = "sheet", xlsx = "sheet", xm = "audio", xml = "code", xpi = "archiv", xz = "archiv", yuv = "video", zip = "archiv", zipx = "archiv" }
+local file_extension_list = { ["ogm"] = "video",["doc"] = "text",["hs"] = "code",["scala"] = "code",["js"] = "code",["swift"] = "code",["cc"] = "code",["jsp"] = "code",["tga"] = "image",["ape"] = "audio",["woff2"] = "font",["cab"] = "archive",["whl"] = "archive",["mpe"] = "video",["rmvb"] = "video",["srt"] = "video",["csh"] = "code",["tex"] = "text",["cs"] = "code",["exe"] = "exec",["m4a"] = "audio",["zsh"] = "code",["crx"] = "exec",["vob"] = "video",["xm"] = "audio",["gz"] = "archive",["org"] = "text",["ada"] = "code",["lhs"] = "code",["azw"] = "book",["for"] = "code",["gif"] = "image",["rb"] = "code",["3g2"] = "video",["cob"] = "code",["ar"] = "archive",["vb"] = "code",["sid"] = "audio",["ai"] = "image",["wma"] = "audio",["pea"] = "archive",["lisp"] = "code",["bmp"] = "image",["py"] = "code",["2.ada"] = "code",["mp4"] = "video",["m4p"] = "video",["aaf"] = "video",["jpeg"] = "image",["3dm"] = "image",["command"] = "exec",["go"] = "code",["azw4"] = "book",["otf"] = "font",["ebook"] = "text",["eps"] = "image",["rtf"] = "text",["cbz"] = "book",["ttf"] = "font",["1.ada"] = "code",["bat"] = "code",["mobi"] = "book",["diff"] = "code",["ra"] = "audio",["cpio"] = "archive",["xz"] = "archive",["php"] = "code",["s"] = "code",["dmg"] = "archive",["flv"] = "video",["asf"] = "video",["css"] = "web",["zipx"] = "archive",["mpg"] = "video",["xls"] = "sheet",["cpp"] = "code",["jpg"] = "image",["mkv"] = "video",["nsv"] = "video",["jsx"] = "code",["mp3"] = "audio",["adb"] = "code",["h"] = "code",["m4"] = "code",["java"] = "code",["cbl"] = "code",["hpp"] = "code",["class"] = "code",["lua"] = "code",["m2v"] = "video",["fth"] = "code",["deb"] = "archive",["rst"] = "text",["csv"] = "sheet",["hh"] = "code",["hxx"] = "code",["c"] = "code",["m4v"] = "video",["pls"] = "audio",["pak"] = "archive",["tbz2"] = "archive",["aiff"] = "audio",["egg"] = "archive",["log"] = "text",["swg"] = "code",["gpx"] = "image",["e"] = "code",["d"] = "code",["bz2"] = "archive",["f"] = "code",["fish"] = "code",["iso"] = "archive",["apk"] = "archive",["it"] = "audio",["webm"] = "video",["3ds"] = "image",["au"] = "audio",["patch"] = "code",["rs"] = "code",["kml"] = "image",["woff"] = "font",["r"] = "code",["max"] = "image",["3gp"] = "video",["po"] = "code",["v"] = "code",["mng"] = "video",["rpm"] = "archive",["a"] = "archive",["htm"] = "code",["s7z"] = "archive",["ics"] = "sheet",["bash"] = "code",["f90"] = "code",["flac"] = "audio",["azw3"] = "book",["mp2"] = "video",["asm"] = "code",["xml"] = "code",["ksh"] = "code",["epub"] = "book",["bas"] = "code",["svg"] = "image",["tgz"] = "archive",["mpa"] = "audio",["wmv"] = "video",["vcxproj"] = "code",["mpeg"] = "video",["mpv"] = "video",["less"] = "web",["f77"] = "code",["c++"] = "code",["m3u"] = "audio",["dwg"] = "image",["odt"] = "text",["msg"] = "text",["ads"] = "code",["msi"] = "exec",["png"] = "image",["gsm"] = "audio",["ogg"] = "video",["cbr"] = "book",["azw1"] = "book",["pages"] = "text",["dds"] = "image",["docx"] = "text",["azw6"] = "book",["mid"] = "audio",["ftn"] = "code",["odp"] = "slide",["aac"] = "audio",["s3m"] = "audio",["avi"] = "video",["ogv"] = "video",["ods"] = "sheet",["groovy"] = "code",["eot"] = "font",["dxf"] = "image",["nim"] = "code",["html"] = "code",["wpd"] = "text",["bin"] = "exec",["txt"] = "text",["pp"] = "code",["rm"] = "video",["m"] = "code",["ps"] = "image",["psd"] = "image",["ppt"] = "slide",["clj"] = "code",["roq"] = "video",["mod"] = "audio",["tiff"] = "image",["lha"] = "archive",["mxf"] = "video",["7z"] = "archive",["drc"] = "video",["yuv"] = "image",["wps"] = "text",["sh"] = "code",["mar"] = "archive",["vcf"] = "sheet",["shar"] = "archive",["xcf"] = "image",["tlz"] = "archive",["jar"] = "archive",["qt"] = "video",["tar"] = "archive",["xpi"] = "archive",["zip"] = "archive",["xcodeproj"] = "code",["cxx"] = "code",["kt"] = "code",["rar"] = "archive",["md"] = "text",["scss"] = "web",["pdf"] = "text",["webp"] = "image",["war"] = "archive",["pl"] = "code",["xlsx"] = "sheet",["svi"] = "video",["thm"] = "image",["avchd"] = "video",["tif"] = "image",["mov"] = "video",["kmz"] = "image",["wasm"] = "web",["el"] = "code",["wav"] = "audio",}
 
 local function extparser(arg)
    local curr = 0
@@ -72,25 +63,23 @@ local function extparser(arg)
 end
 
 -- recurse into directories
-local function analyse_path(basedir, pathname, level)
-   local target = pathname or basedir
-   local curlev = level or 1
+local function analyse_path(args, pathname, level)
+   local target = pathname or args.path
+   local curlev = tonumber(level or 1)
+   if curlev > tonumber(args.maxdepth) then return end
    local scores = { other = { } }
-   -- D("analyse: "..target)
    local path
    for path in lfs.dir(target) do
 	  if not (path == '.' or path == '..') then
 		 local tarpath = target..'/'..path
 		 if lfs.attributes(tarpath,"mode") == "directory" then
-			D("found dir:\t"..tarpath.." ("..curlev..")")
-			analyse_path(basedir, tarpath, curlev+1)
+			analyse_path(args, tarpath, curlev+1)
 
 	 else -- file in subdir
 			local ftype = file_extension_list[ extparser(tarpath) ]
 			if ftype then
 			   if not scores[ftype] then scores[ftype] = { } end
 			   table.insert(scores[ftype], tarpath)
-			   -- D("found "..ftype..":\t"..tarpath)
 			else
 			   table.insert(scores['other'], tarpath)
 			end
@@ -103,9 +92,11 @@ end
 local function fuzzyguess(scores)
    -- compute a very, very simple linear fuzzy logic for each
    local res = { guess = 'other',
-				 totals = { } }
-   for k,v in pairs(scores) do
-	  res.totals[k] = #v / (fuzzy[k] or fuzzy['other'])
+		 totals = { } }
+   if scores then
+      for k,v in pairs(scores) do
+	 res.totals[k] = #v / (fuzzy[k] or fuzzy['other'])
+      end
    end
    local max = 0
    for k,v in pairs(res.totals) do
@@ -132,21 +123,21 @@ local function show_selection(args, selection)
    end
    -- for k,v in pairs(selection) do
    for k=1, #selection do
-	  local v = selection[k]
+      local v = selection[k]
       if args.output == 'csv' then
          stdout(v.type..","..v.guess..","..v.modification..","
-                   ..v.size..","..v.name)
+		..v.size..","..v.name)
          -- human friendly formatting
       else
-		 local size = v.size
-		 local guess = v.guess
-		 if v.type == 'dir' then size = '/' end
-		 if v.guess == 'other' then guess = '? ? ?' end
-		 if v.guess == 'archiv' then guess = 'archv' end
+	 local size = v.size
+	 local guess = v.guess
+	 if v.type == 'dir' then size = '/' end
+	 if v.guess == 'other' then guess = '? ? ?' end
+	 if v.guess == 'archiv' then guess = 'archv' end
          stdout(align(k..","..v.type..","..guess..","
-                         ..os.date('%Y-%m-%d',v.modification)..","
-                         ..size..","..v.name))
-	  end
+		      ..os.date('%Y-%m-%d',v.modification)..","
+		      ..size..","..v.name))
+      end
    end
 end
 
@@ -156,26 +147,14 @@ cli:set_name("harvest")
 cli:set_description('manage large collections of files and directories')
 
 cli:option("-p, --path=PATH", "", lfs.currentdir())
-cli:option("-t, --type=TYPE", "text, audio, video, code, etc.")
-cli:option("-o, --output=FORMAT", "csv, json", 'human')
+cli:option("-t, --type=TYPE", "text, audio, video, etc. (-t list)")
+cli:option("-o, --output=FORMAT", "csv", 'human')
+cli:option("-m, --maxdepth=NUM", "max levels of recursion inside dirs", 3)
 cli:flag("--dir", "select only directories")
 cli:flag("--file", "select only files")
 cli:flag("-d", "run in DEBUG mode", function() DEBUG=1 end)
-cli:flag("-v, --version", "print the version and exits", function()
-			print("Harvest version 0.7") os.exit(0) end)
-cli:flag("-n, --dryrun", "show actions, don't execute commands", false)
-
-cli:command("mv", "move the selection to destination")
-   :argument('dest','folder to which the selection will be moved')
-   :action(function(options)
-		 print("TODO: mv to destination: "..options.dest)
-		  end)
-
-cli:command("cp", "copy the selection to destination")
-   :argument('dest','folder to which the selection will be moved')
-   :action(function(options)
-		 print("TODO: mv to destination: "..options.dest)
-		  end)
+cli:flag("-v, --version", "print the version and exit", function()
+			print("Harvest version 0.8") os.exit(0) end)
 
 local args, err = cli:parse(arg)
 local selection = { }
@@ -187,34 +166,49 @@ if not args and err then
    os.exit(1)
 elseif args then -- default command is scan
    stderr("Harvest "..args.path)
+   if args.type == 'list' then
+      local list = { }
+      for k,v in pairs(file_extension_list) do
+	 table.insert(list, v)
+      end
+      print'Supported types:'
+      local hash = { }
+      for _,v in ipairs(list) do
+	 if not hash[v] then
+	    io.stdout:write(' '..v)
+	    hash[v] = true
+	 end
+      end
+      io.stdout:write('\n')
+      os.exit(0)
+   end
    if args.type then stderr("type: "..args.type) end
 
    -- recursive
    local fattr = lfs.attributes
    for file in lfs.dir(args.path) do
       local filepath = args.path.."/"..file
-      D("analyze "..filepath)
       if not (file == '.' or file == '..') then
          local attr = fattr(filepath)
          attr.name = file
-         I(attr)
+         -- I(attr)
          if type(attr) == 'table' then -- safety to os stat
             if attr.mode == "directory" then
                attr.type = 'dir'
                attr.guess = fuzzyguess(
-                  analyse_path(args.path, filepath, 3) ).guess
+                  analyse_path(args, filepath) ).guess
                collectgarbage'collect' -- recursion costs memory
-			   if filter_selection(args,attr) then
-				  table.insert(selection, attr)
-			   end
+	       if filter_selection(args,attr) then
+		  table.insert(selection, attr)
+	       end
             else
                attr.type = 'file'
                attr.guess =
                   file_extension_list[ extparser(filepath) ]
                   or 'other'
-			   if filter_selection(args,attr) then
-				  table.insert(selection, attr)
-			   end
+	       if filter_selection(args,attr) then
+		  table.insert(selection, attr)
+	       end
             end
          end
       end
@@ -222,5 +216,4 @@ elseif args then -- default command is scan
 end
 
 -- print to screen
-print(os.date())
 show_selection(args,selection)

@@ -9,3 +9,14 @@ all:
 	$(AR) rcs lfs.a lfs.o
 	CC="" luastatic $(SOURCES) lfs.a
 	$(CC) -c $(INCLUDE) $(CFLAGS) harvest.luastatic.c
+
+
+static:
+	$(CC) -c $(INCLUDE) $(CFLAGS) lfs.c -o lfs.o
+	$(AR) rcs lfs.a lfs.o
+	-CC="" luastatic $(SOURCES) lfs.a -static $(INCLUDES)
+	$(CC) -c $(INCLUDE) $(CFLAGS) harvest.luastatic.c
+
+import-extensions:
+	lua import_file_extension_list.lua
+
