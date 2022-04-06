@@ -1,6 +1,9 @@
 # hvst
 
-A wrapper around **[dyne/harvest](https://github.com/dyne/harvest)** that fills in [missing functionality](https://github.com/dyne/harvest/issues/5)
+A wrapper around [dyne/harvest](https://github.com/dyne/harvest) that fills in [missing functionality](https://github.com/dyne/harvest/issues/5)
+
+At its heart [dyne/harvest](https://github.com/dyne/harvest) is a file categorization tool.
+`hvst` takes these categorized files and lets you copy them or move them in bulk.
 
 ## Installation
 
@@ -8,17 +11,20 @@ A wrapper around **[dyne/harvest](https://github.com/dyne/harvest)** that fills 
 cp hvst ~/.local/bin
 ```
 
-Dependencies:  harvest, perl, mkdir, cp, mv
+Dependencies:  harvest, perl, sed, mkdir, cp, mv
+
+Optional Dependency:  tmsu-fs-mv
 
 ## Usage
 
 ```
   hvst
   hvst help
-  hvst ls [TYPE]
+  hvst ls [TYPE] [OPTION]
   hvst types
   hvst cp <TYPE> <DEST> [OPTION]...
   hvst mv <TYPE> <DEST> [OPTION]...
+  hvst tmv <TYPE> <DEST> [OPTION]...
 ```
 
 ## Examples
@@ -27,14 +33,17 @@ Dependencies:  harvest, perl, mkdir, cp, mv
   # Display help message.
   hvst help
 
-  # List files in current directory.
+  # List files+metadata in current directory.
   hvst
 
-  # Also list files in current directory.
+  # Also list files+metadata in current directory.
   hvst ls
 
-  # List only audio files.
+  # List only audio files+metadata.
   hvst ls audio
+
+  # List only book files WITHOUT metadata.  (filename only)
+  hvst ls book -1
 
   # List types of files that exist in this directory and their counts.
   hvst types
@@ -46,32 +55,48 @@ Dependencies:  harvest, perl, mkdir, cp, mv
   hvst cp image ~/Pictures --verbose
 
   # Show what would happen if we tried to move all images to ~/Pictures/YYYY/MM.
-  hvst mv image @'"~/Pictures/$_->{year}/$_->{month}"' --recon
+  hvst mv image @'"~/Pictures/$year/$month"' --recon
 
   # Move all videos to ~/Videos/YYYY/MM.
-  hvst mv video @'"~/Videos/$_->{year}/$_->{month}"'
+  hvst mv video @'"~/Videos/$year/$month"'
 
-  # Both cp and mv commands take --verbose and --recon (or -v and -r for short).
+  # Move all books to ~/Dropbox/books using tmsu-fs-mv.
+  hvst tmv book ~/Dropbox/books
+
+  # The cp, mv, and tmv commands take --verbose and --recon
+  # (or -v and -r for short).
   # --verbose means print the shell command.
   # --recon   means print the shell command but don't execute it.
 ```
 
 ### Destination Expressions
 
-The `<DEST>` for for both `cp` and `mv` can be a Perl expression.
+The `<DEST>` for for `cp`, `mv`, and `tmv` can be a Perl expression.
 A Leading "@" tells `hvst` to evaluate the string as Perl code.
-The `$_` variable will be a hashref with the following keys.
+The following variables will be available.
 
-* i     - numeric index
-* nt    - node type
-* t     - file type
-* d     - date
-* year  - year
-* month - month (zero padded)
-* day   - day (zero padded)
-* s     - size
-* n     - name
+* $i     - numeric index
+* $nt    - node type (file or dir)
+* $t     - file type
+* $d     - date in YYYY-MM-DD format
+* $mt    - modified time in seconds
+* $year  - year
+* $month - month (zero padded)
+* $day   - day (zero padded)
+* $s     - size in bytes
+* $n     - name
 
-## Known Issues
+The `$_` variable is also available and is a hashref containing all of the above values.
 
-* Filenames with literal tab characters break `hvst`.  The upstream `harvest` seems to expands tabs to spaces when printing them out.
+## My System
+
+To keep my `~/Downloads` tidy, I use these aliases and run them periodically.
+I don't run this automatically, because I often delete files I don't want before
+running `hvst`.
+
+```bash
+  alias hmvi="hvst mv image @'\"~/Pictures/\$year/\$month\"'"
+  alias hmvv="hvst mv video @'\"~/Videos/\$year/\$month\"'"
+```
+
+To help me find them later, I tag them with [tmsu](https://github.com/oniony/TMSU).

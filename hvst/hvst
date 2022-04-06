@@ -6,23 +6,27 @@ use Getopt::Long;
 
 # run harvest and parse its output
 sub harvest {
-  my @lines = `harvest --file 2> /dev/null | sed 1d`; # TODO - consume its CSV output for greater accuracy
+  my @lines = `harvest --output=csv --file 2> /dev/null | sed 1d`;
   my @files;
-  # replace '? ? ?' with misc
+  my $i = 1;
   for (@lines) {
-    s/\? \? \?/misc /;
-    /^(\d+)\s+(\w+)\s+(\w+)\s+(\d+-\d{2}-\d{2})\s+(\d+)\s+(.*)$/;
+    /^(\w+),(\w+),(\d+),(\d+),(.*)$/;
+    my @lt = localtime($3);
     my $file = {
-      i  => $1,
-      nt => $2,
-      t  => $3,
-      d  => $4,
-      s  => $5,
-      n  => $6
+      i  => $i,
+      nt => $1,
+      t  => $2,
+      mt => $3,
+      s  => $4,
+      n  => $5
     };
     $file->{n} =~ s/\s*$//;
-    ($file->{year}, $file->{month}, $file->{day}) = split(/-/, $file->{d});
+    $file->{year} = $lt[5]+1900;
+    $file->{month} = sprintf('%02d', $lt[4]+1);
+    $file->{day} = sprintf('%02d', $lt[3]);
+    $file->{d} = "$file->{year}-$file->{month}-$file->{day}";
     push @files, $file;
+    $i++;
   }
   return @files;
 }
@@ -35,6 +39,17 @@ sub expr {
     # leading '@' means eval as code
     $expr =~ s/^@//;
     $_ = $file;
+    # add variables for ease of use in expression
+    my $i = $_->{i};
+    my $nt = $_->{nt};
+    my $t = $_->{t};
+    my $d = $_->{d};
+    my $mt = $_->{mt};
+    my $s = $_->{s};
+    my $n = $_->{n};
+    my $year = $_->{year};
+    my $month = $_->{month};
+    my $day = $_->{day};
     my $dest = eval($expr);
     $dest =~ s/^~/\$HOME/; # do tilde expansion manually
     return $dest;
@@ -67,46 +82,45 @@ sub types {
   return \@pairs;
 }
 
-# copy files by type
-sub cp {
-  my $type = shift;
-  my $dest_expr = shift;
-  my $verbose = shift;
-  my $recon = shift;
-  my @files = ls $type;
-  for (@files) {
-    my $dest = expr($_, $dest_expr);
-    my $mkdir = qq[mkdir -p "$dest"];
-    say $mkdir if ($verbose || $recon);
-    system $mkdir unless $recon;
-    my $command = qq[cp "$_->{n}" "$dest"];
-    say $command if ($verbose || $recon);
-    system $command unless $recon;
+# A function to generate functions for filesystem operations
+sub filesystem_fn {
+  my $op = shift;
+  return sub {
+    my $type = shift;
+    my $dest_expr = shift;
+    my $verbose = shift;
+    my $recon = shift;
+    my @files = ls $type;
+    for (@files) {
+      my $dest = expr($_, $dest_expr);
+      my $mkdir = qq[mkdir -p "$dest"];
+      say $mkdir if ($verbose || $recon);
+      system $mkdir unless $recon;
+      my $command = qq[$op "$_->{n}" "$dest"];
+      say $command if ($verbose || $recon);
+      system $command unless $recon;
+    }
   }
 }
 
-# move files by type
-sub mv {
-  my $type = shift;
-  my $dest_expr = shift;
-  my $verbose = shift;
-  my $recon = shift;
-  my @files = ls $type;
-  for (@files) {
-    my $dest = expr($_, $dest_expr);
-    my $mkdir = qq[mkdir -p "$dest"];
-    say $mkdir if ($verbose || $recon);
-    system $mkdir unless $recon;
-    my $command = qq[mv "$_->{n}" "$dest"];
-    say $command if ($verbose || $recon);
-    system $command unless $recon;
+# Define filesystem functions.
+{
+  no strict 'refs';
+  my @defs = (
+    [ 'cp', 'cp' ],
+    [ 'mv', 'mv' ],
+    [ 'tmv', 'tmsu-fs-mv' ]
+  );
+  for my $d (@defs) {
+    my $function_name = $d->[0];
+    *$function_name = filesystem_fn($d->[1]);
   }
 }
 
 # print file metadata like harvest does
 sub print_file {
   my $file = shift;
-  printf("%-7d%-7s%-7s%-11s%-7s %s\n",
+  printf("%-7d%-7s%-7s%-11s%-6s %s\n",
     $file->{i},
     $file->{nt},
     $file->{t},
@@ -122,10 +136,11 @@ Usage:
 
   hvst
   hvst help
-  hvst ls [TYPE]
+  hvst ls [TYPE] [OPTION]
   hvst types
   hvst cp <TYPE> <DEST> [OPTION]...
   hvst mv <TYPE> <DEST> [OPTION]...
+  hvst tmv <TYPE> <DEST> [OPTION]...
 
 Examples:
 
@@ -141,6 +156,9 @@ Examples:
   # List only audio files.
   hvst ls audio
 
+  # List only book files WITHOUT metadata.  (filename only)
+  hvst ls book -1
+
   # List types of files that exist in this directory and their counts.
   hvst types
 
@@ -151,12 +169,16 @@ Examples:
   hvst cp image ~/Pictures --verbose
 
   # Show what would happen if we tried to move all images to ~/Pictures/YYYY/MM.
-  hvst mv image '@"~/Pictures/$_->{year}/$_->{month}"' --recon
+  hvst mv image @'"~/Pictures/$year/$month"' --recon
 
-  # Move all images to ~/Pictures/YYYY/MM.
-  hvst mv image '@"~/Pictures/$_->{year}/$_->{month}"'
+  # Move all videos to ~/Videos/YYYY/MM.
+  hvst mv video @'"~/Videos/$year/$month"'
 
-  # Both cp and mv commands take --verbose and --recon (or -v and -r for short).
+  # Move all books to ~/Dropbox/books using tmsu-fs-mv.
+  hvst tmv book ~/Dropbox/books
+
+  # The cp, mv, and tmv commands take --verbose and --recon
+  # (or -v and -r for short).
   # --verbose means print the shell command.
   # --recon   means print the shell command but don't execute it.
 };
@@ -174,7 +196,12 @@ sub main {
       GetOptions(\%_, "verbose|v", "recon|r");
       my ($type, $dest) = @ARGV;
       mv($type, $dest, $_{verbose}, $_{recon});
+    } elsif ($command eq 'tmv') {
+      GetOptions(\%_, "verbose|v", "recon|r");
+      my ($type, $dest) = @ARGV;
+      tmv($type, $dest, $_{verbose}, $_{recon});
     } elsif ($command eq 'ls') {
+      GetOptions(\%_, "1");
       my ($type) = @ARGV;
       my @files;
       if ($type) {
@@ -183,7 +210,11 @@ sub main {
         @files = harvest();
       }
       for (@files) {
-        print_file($_);
+        if ($_{1}) {
+          say $_->{n};
+        } else {
+          print_file($_);
+        }
       }
     } elsif ($command eq 'types') {
       my @types = sort { $b->[1] <=> $a->[1] } @{types()};
