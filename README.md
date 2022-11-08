@@ -1,7 +1,93 @@
-# Shell version of harvest
+# Harvest - manage large collections of files and dirs
 
-This is an older version of harvest, it is made in Zsh and needs the Zuper
-plugin for Zsh installed (make install -C zuper).
+Harvest makes it easy to list files and folders by type and copy or
+move them around.
+
+![Kant handle my swag](docs/kant_handle_my_swag.jpeg)
+
+It is compact and portable software that can scan files and folders to
+recognise their typology. Scanning is based on [file
+extensions](https://github.com/dyne/file-extension-list) and a simple
+fuzzy logic analysis of **folder contents** (not just files) to
+recognise if they are related to video, audio or text materials, etc.
+
+It is **fast**: it can process approximately 1GB of stored files per
+second and is operated from the console terminal.
+
+Harvest operates on folders containing files without exploding the
+files around: it assesses the typology of a folder from the files
+contained, but does not move the files outside of that folder. For
+instance it works very well to move around large collections of
+downloaded torrent folders.
+
+## :floppy_disk: Installation
+
+Harvest is a Zsh script and works on any POSIX platform where it can be installed including GNU/Linux, Apple/OSX and MS/Windows.
+
+To install it make it executable in your shell path:
+```sh
+cp harvest ~/.local/bin
+```
+
+or
+```
+sudo make install
+```
+
+Dependencies: zsh, cp
+
+## :video_game: Usage
+
+```
+ harvest scan [PATH]
+ harvest ls [TYPE]
+ harvest cp <TYPE> <DEST>
+ harvest tmsu [PATH]
+```
+
+
+## Examples
+
+Scan current folder and print results
+```
+harvest scan
+```
+
+List all audio files and directories in current folder
+```
+harvest ls audio
+```
+
+Copy all image files and directories to ~/Pictures
+```
+harvest cp image ~/Pictures
+```
+
+List all image files (not directories)
+```
+harvest ls image | grep '^file'
+```
+
+List all video directories (not files)
+```
+harvest ls video | grep '^dir'
+```
+
+List all reading materials
+```
+harvest ls text
+```
+
+To have a list of supported types use `harvest help` at any moment
+```
+Supported types:
+ code image video book text font web archiv sheet exec slide audio
+```
+For more information about types recognized see the catalogue of file
+types we maintain in the [file-extension-list
+project](https://github.com/dyne/file-extension-list).
+
+
 
 ## TMSU
 
