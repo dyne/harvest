@@ -24,58 +24,27 @@ downloaded torrent folders.
 
 Harvest is a Zsh script and works on any POSIX platform where it can be installed including GNU/Linux, Apple/OSX and MS/Windows.
 
-To install it make it executable in your shell path:
-```sh
-cp harvest ~/.local/bin
+Install the latest harvest with:
+```
+curl https://raw.githubusercontent.com/dyne/harvest/main/harvest | sudo tee /usr/local/bin/harvest
 ```
 
-or
-```
-sudo make install
-```
+Dependencies: `zsh`
 
-Dependencies: zsh, cp
+Optional:
+- `fuse tmsu` for tagged filesystem
+- `setfattr` for setting file attributes
 
 ## :video_game: Usage
 
+Scan and save results
 ```
- harvest scan [PATH]
- harvest ls [TYPE]
- harvest cp <TYPE> <DEST>
- harvest tmsu [PATH]
+ harvest scan [PATH] > /tmp/harvested
 ```
 
-
-## Examples
-
-Scan current folder and print results
+List all video file types in scanned results
 ```
-harvest scan
-```
-
-List all audio files and directories in current folder
-```
-harvest ls audio
-```
-
-Copy all image files and directories to ~/Pictures
-```
-harvest cp image ~/Pictures
-```
-
-List all image files (not directories)
-```
-harvest ls image | grep '^file'
-```
-
-List all video directories (not files)
-```
-harvest ls video | grep '^dir'
-```
-
-List all reading materials
-```
-harvest ls text
+ cat /tmp/harvested | harvest ls video
 ```
 
 To have a list of supported types use `harvest help` at any moment
@@ -83,6 +52,22 @@ To have a list of supported types use `harvest help` at any moment
 Supported types:
  code image video book text font web archiv sheet exec slide audio
 ```
+
+Move all text files in scanned results
+```
+ cat /tmp/harvested | harvest ls text | xargs -I % sh -c 'mv % <DEST>'
+```
+
+Tag all file attributes with `harvest.type`
+```
+ harvest attr [PATH]
+```
+
+Tag all files for use with TMSU (See section below about TMSU)
+```
+ harvest tmsu [PATH]
+```
+
 For more information about types recognized see the catalogue of file
 types we maintain in the [file-extension-list
 project](https://github.com/dyne/file-extension-list).
