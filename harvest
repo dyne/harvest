@@ -693,17 +693,18 @@ fuzzycount() {
 
 analyse_files() {
 	act "analysing files..."
+	local base
+	realpath "$1" | read base
 	prev=""
 	numfiles=0
-	for i in ${(f)"$(find "$1" -maxdepth 1 -type f | tail -n +2)"}; do
+	for i in ${(f)"$(find "$base" -maxdepth 1 -type f | tail -n +2)"}; do
 		file_path="$i"
-		[[ -r "$i" ]] || continue
+		[[ -r "$file_path" ]] || continue
 		file-extension-parser "$file_path" | read file_type
 		get-file-info "$file_path"
-		files+="file,$file_type,$file_info_date,$file_path,$file_info_size\n"
+		print -n - "file,$file_type,$file_info_date,$file_path,$file_info_size\n"
 		numfiles=$(( $numfiles + 1 ))
 	done
-	print - "$files"
 }
 
 analyse_dirs() {
