@@ -755,9 +755,10 @@ getattr() {
 if [[ -d "$1" ]]; then
 	command='scan'
 else
-	command="${1}"
-	shift 1
+	command="${1:-scan}"
+	[[ "$#" -gt 1 ]] && shift 1
 fi
+
 
 bmarks=$HOME/.config/gtk-3.0/bookmarks
 
