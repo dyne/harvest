@@ -32,10 +32,13 @@ jobs:
 
  mac-osx:
    runs-on: macos-12
-   name: 😈 MacOSX
+   name: 🍎 MacOSX
    steps:
    - name: Checkout
      uses: actions/checkout@v2
+   - name: Install dependencies
+     run: |
+       brew install coreutils
    - name: Run tests
      run: |
        make -C test
