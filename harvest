@@ -614,7 +614,7 @@ function file-extension-parser() {
 # number makes the type "dominant".
 video_factor=1  #  minimum video files to increase the video factor
 audio_factor=3  #  minimum audio files to increase the audio factor
-text_factor=8   #  minimum text  files to increase the text factor
+text_factor=4   #  minimum text  files to increase the text factor
 image_factor=10 #  minimum image files to increase the image factor
 other_factor=20 #  minimum other files to increase the other factor
 code_factor=5   #  minimum code  files to increase the code factor
