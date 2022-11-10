@@ -20,6 +20,7 @@
 
 harvest_version=0.6
 harvest_release_date="Nov/2022"
+harvest_csv_separator=';'
 
 # export HARVEST_PREFIX=$HOME/devel/harvest
 R=${HARVEST_PREFIX:-/usr/local/share/harvest}
@@ -683,11 +684,11 @@ fuzzycount() {
         (( $count == $match )) && {
 			# get the year and print out directories here
 			get-dir-info "$arg"
-			print - "dir,$t,$dir_info_date,$arg"
+			print - "dir${SEP}$t${SEP}$dir_info_date${SEP}$arg"
 			return 0 }
     done
 	get-file-info "$arg"
-	print - "dir,other,$dir_info_date,$arg"
+	print - "dir${SEP}other${SEP}$dir_info_date${SEP}$arg"
     return 0
 }
 
@@ -702,7 +703,7 @@ analyse_files() {
 		[[ -r "$file_path" ]] || continue
 		file-extension-parser "$file_path" | read file_type
 		get-file-info "$file_path"
-		print -n - "file,$file_type,$file_info_date,$file_path,$file_info_size\n"
+		print -n - "file${SEP}$file_type${SEP}$file_info_date${SEP}$file_path${SEP}$file_info_size\n"
 		numfiles=$(( $numfiles + 1 ))
 	done
 }
@@ -784,8 +785,8 @@ case "${command:l}" in
 		listed=0
 		act "List existing harvested files of type: $needle"
 		for i in ${(f)"$(cat)"}; do
-			[[ "$needle" = "all" ]] || [[ "${i[(ws:,:)2]}" = "$needle" ]] && {
-				fname="${i[(ws:,:)4]}"
+			[[ "$needle" = "all" ]] || [[ "${i[(ws:;:)2]}" = "$needle" ]] && {
+				fname="${i[(ws:;:)4]}"
 				[[ -r "$fname" ]] && {
 					ls "$fname"
 					listed=$(( $listed + 1 ))
@@ -800,8 +801,8 @@ case "${command:l}" in
 		if command -v setfattr >/dev/null; then
 			act "Set harvest.type extended attribute on harvested files from stdin"
 			for i in ${(f)"$(cat)"}; do
-				fname=${i[(ws:,:)4]}
-				ftype=${i[(ws:,:)2]}
+				fname=${i[(ws:;:)4]}
+				ftype=${i[(ws:;:)2]}
 				[[ -r "$fname" ]] && {
 					setfattr -n "harvest.type" -v "$ftype" "$fname"
 				}
@@ -827,10 +828,10 @@ case "${command:l}" in
 			 fileFingerprintAlgorithm=none \
 			 reportDuplicates=yes
 		for i in ${(f)"$(cat)"}; do
-			fname=${i[(ws:,:)4]}
+			fname=${i[(ws:;:)4]}
 			[[ -r "$fname" ]] || continue
-			ftype=${i[(ws:,:)2]}
-			fyear=${i[(ws:,:)3]}
+			ftype=${i[(ws:;:)2]}
+			fyear=${i[(ws:;:)3]}
 			# act "tmsu tag $fname $ftype"
 			tmsu tag "$fname" "$ftype"
 			numfiles=$(( $numfiles + 1 ))
