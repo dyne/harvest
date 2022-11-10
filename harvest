@@ -532,9 +532,12 @@ analyse_files() {
 	act "analysing files..."
 	local base
 	realpath "$1" | read base
-	prev=""
-	numfiles=0
-	for i in ${(f)"$(find "$base" -maxdepth 1 -type f | tail -n +2)"}; do
+	local prev=""
+	local numfiles=0
+	local tmp=`mktemp`
+	find "$base" -maxdepth 1 -type f >$tmp
+	[[ $? != 0 ]] && { zuper.exit; rm -f $tmp; exit 1 }
+	for i in ${(f)"$(cat $tmp | tail -n +2)"}; do
 		file_path="$i"
 		[[ -r "$file_path" ]] || continue
 		file-extension-parser "$file_path" | read file_type
@@ -542,6 +545,7 @@ analyse_files() {
 		print -n - "file${SEP}$file_type${SEP}$file_info_date${SEP}$file_path${SEP}$file_info_size\n"
 		numfiles=$(( $numfiles + 1 ))
 	done
+	rm -f $tmp
 }
 
 analyse_dirs() {
@@ -589,35 +593,36 @@ getattr() {
 }
 
 # main argument: harvest will parse all filenames found in incoming
-if [[ -d "$1" ]]; then
-	command='scan'
-else
-	command="${1:-scan}"
-	[[ "$#" -gt 1 ]] && shift 1
-fi
-
+command="${1:-scan}"
 
 bmarks=$HOME/.config/gtk-3.0/bookmarks
 
 case "${command:l}" in
 	scan)
-		target="${1:-$PWD}/"
-		depth="${2:-2}"
+		target="${2:-$PWD}/"
+		depth="${3:-2}"
 		act   "scanning folder: $target (depth $depth)"
 		analyse_files "$target"
 		act "scanning sub-folders..."
-		for d in ${(f)"$(find $target -maxdepth 1 -type d | tail -n +2)"}; do
+		local tmp=`mktemp`
+		find $target -maxdepth 1 -type d >$tmp
+		[[ $? != 0 ]] && { zuper.exit; rm $tmp; exit 1 }
+		local tmploop=`mktemp`
+		for d in ${(f)"$(cat $tmp | tail -n +2)"}; do
 			# TODO: make depth configurable
-			analyse_dirs "`find $d -maxdepth $depth`" $d
+			find $d -maxdepth $depth >$tmploop
+			[[ $? != 0 ]] && { zuper.exit; rm -f $tmp $tmploop; exit 1 }
+			analyse_dirs "`cat $tmploop`" $d
 		done
 		for o in $alldirs; do
 			fuzzycount "$o"
 		done
+		rm -f $tmp $tmploop
 		notice "${numfiles} files and ${#alldirs} folders scanned in `basename $target`"
 		;;
 
 	ls)
-		needle="$1"
+		needle="$2"
 		listed=0
 		act "List existing harvested files of type: $needle"
 		for i in ${(f)"$(cat)"}; do
@@ -680,7 +685,7 @@ case "${command:l}" in
 			error "TMSU not installed"
 			zuper.exit; return 1
 		}
-		root="${1:-$PWD}"
+		root="${2:-$PWD}"
 		act "Mounting TMSU in: $root"
 		[[ -r $root/.tmsu/db ]] || {
 			error "tmsu tags not initialised, use 'harvest tmsu'"
