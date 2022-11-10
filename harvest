@@ -368,15 +368,17 @@ func "${#maps} global maps registered"
 ################
 
 LOCAL_ARCH=`uname -s`
+# avoid aliases to different ls programs
+LS=`which ls`
 
 function get-file-info() {
 	local ls
 	case ${LOCAL_ARCH:l} in
 		linux)
-			ls=`ls -l --time-style '+%Y-%m-%d' "$1" | tr -s ' '`
+			ls=`$LS -l --time-style '+%Y-%m-%d' "$1" | tr -s ' '`
 			;;
 		freebsd|darwin)
-			ls=`ls -l -D '%Y-%m-%d' "$1" | tr -s ' '`
+			ls=`$LS -l -D '%Y-%m-%d' "$1" | tr -s ' '`
 			;;
 	esac
 	print - "$ls" | cut -d ' ' -f 6 | read file_info_date
@@ -387,10 +389,10 @@ function get-dir-info() {
 	local ls
 	case ${LOCAL_ARCH:l} in
 		linux)
-			ls=`ls -d -l --time-style '+%Y-%m-%d' "$1" | tr -s ' '`
+			ls=`$LS -d -l --time-style '+%Y-%m-%d' "$1" | tr -s ' '`
 			;;
 		freebsd|darwin)
-			ls=`ls -d -l -D '%Y-%m-%d' "$1" | tr -s ' '`
+			ls=`$LS -d -l -D '%Y-%m-%d' "$1" | tr -s ' '`
 			;;
 	esac
 	print - "$ls" | cut -d ' ' -f 6 | read dir_info_date
@@ -621,22 +623,6 @@ case "${command:l}" in
 		notice "${numfiles} files and ${#alldirs} folders scanned in `basename $target`"
 		;;
 
-	ls)
-		needle="$2"
-		listed=0
-		act "List existing harvested files of type: $needle"
-		for i in ${(f)"$(cat)"}; do
-			[[ "$needle" = "all" ]] || [[ "${i[(ws:;:)2]}" = "$needle" ]] && {
-				fname="${i[(ws:;:)4]}"
-				[[ -r "$fname" ]] && {
-					ls "$fname"
-					listed=$(( $listed + 1 ))
-				}
-			}
-		done
-		act "Done listing $listed items."
-		;;
-
 	# using attr (getfattr / setfattr)
 	attr)
 		if command -v setfattr >/dev/null; then
@@ -700,7 +686,7 @@ case "${command:l}" in
 		# setup gtk bookmarks too (for sidebar in pcmanfm, thunar etc.)
 		[[ -r $bmarks~harvest ]] || {
 			mv $bmarks $bmarks~harvest
-			for i in ${(f)"$(ls $root/.mnt/tags)"}; do
+			for i in ${(f)"$($LS $root/.mnt/tags)"}; do
 				print "file://$root/.mnt/tags/$i" >> $bmarks
 			done
 		}
