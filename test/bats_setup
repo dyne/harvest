@@ -1,8 +1,4 @@
 setup() {
     bats_require_minimum_version 1.5.0
-    T="$BATS_TEST_DIRNAME"
-    R=`realpath "$T"/..`
-    TMP="$BATS_TEST_TMPDIR"
-    ZTMP="$BATS_FILE_TMPDIR"
 	cd /tmp/harvest_test
 }
