@@ -403,7 +403,7 @@ function file-extension-parser() {
 	   7z|a|apk|ar|bz2|cab|cpio|deb|dmg|egg|gz|iso|jar|lha|mar|pak|pea|rar|rpm|s7z|shar|tar|tbz2|tgz|tlz|war|whl|xpi|xz|zip|zipx)
 		   print - "archive"
 		   ;;
-	   aac|aiff|ape|au|flac|gsm|it|m3u|m4a|mid|mod|mp3|mpa|pls|ra|s3m|sid|wav|wma|xm)
+	   aac|aiff|ape|au|flac|gsm|it|m3u|m4a|mid|mod|mp3|mpa|ogg|pls|ra|s3m|sid|wav|wma|xm)
 		   print - "audio"
 		   ;;
 	   azw|azw1|azw3|azw4|azw6|cbr|cbz|epub|mobi)
@@ -430,7 +430,7 @@ function file-extension-parser() {
 																												   doc|docx|ebook|log|md|msg|odt|org|pages|pdf|rst|rtf|tex|txt|wpd|wps)
 																													   print - "text"
 																													   ;;
-																												   3g2|3gp|aaf|asf|avchd|avi|drc|flv|m2v|m4p|m4v|mkv|mng|mov|mp2|mp4|mpe|mpeg|mpg|mpv|mxf|nsv|ogg|ogm|ogv|qt|rm|rmvb|roq|srt|svi|vob|webm|wmv|yuv)
+																												   3g2|3gp|aaf|asf|avchd|avi|drc|flv|m2v|m4p|m4v|mkv|mng|mov|mp2|mp4|mpe|mpeg|mpg|mpv|mxf|nsv|ogm|ogv|qt|rm|rmvb|roq|srt|svi|vob|webm|wmv|yuv)
 																													   print - "video"
 																													   ;;
 																												   css|less|scss|wasm)
