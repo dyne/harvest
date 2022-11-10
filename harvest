@@ -42,11 +42,10 @@ arrs=(req freq)
 vars+=(zuper_version)
 zuper_version=0.4
 
-# load necessary zsh extensions
-zmodload zsh/regex
-zmodload zsh/system
-zmodload zsh/net/tcp
-zmodload zsh/mapfile
+# zsh extensions
+# zmodload zsh/regex
+# zmodload zsh/system
+# zmodload zsh/mapfile
 
 # {{{ Messaging
 
@@ -309,167 +308,6 @@ function zuper.exit zshexit() { endgame EXIT; return $? }
 
 # }}} Debugging
 
-# {{{ Parse commandline options
-
-# for example usage, see Tomb http://tomb.dyne.org
-vars+=(subcommand)
-arrs+=(option_main option_params)
-maps+=(option option_subcommands)
-
-# Hi, dear developer!  Are you trying to add a new subcommand, or
-# to add some options?  Well, keep in mind that option names are
-# global: they cannot bear a different meaning or behaviour across
-# subcommands.  The only exception is "-o" which means: "options
-# passed to the local subcommand", and thus can bear a different
-# meaning for different subcommands.
-#
-# For example, "-s" means "size" and accepts one argument. If you
-# are tempted to add an alternate option "-s" (e.g., to mean
-# "silent", and that doesn't accept any argument) DON'T DO IT!
-#
-# There are two reasons for that:
-#    I. Usability; users expect that "-s" is "size"
-#   II. Option parsing WILL EXPLODE if you do this kind of bad
-#       things (it will complain: "option defined more than once")
-#
-# If you want to use the same option in multiple commands then you
-# can only use the non-abbreviated long-option version like:
-# -force and NOT -f
-
-option.is_set() {
-
-	# Check whether a commandline option is set.
-	#
-	# Synopsis: option_is_set -flag [out]
-	#
-	# First argument is the commandline flag (e.g., "-s").
-	# If the second argument is present and set to 'out', print out the
-	# result: either 'set' or 'unset' (useful for if conditions).
-	#
-	# Return 0 if is set, 1 otherwise
-    local -i r   # the return code (0 = set, 1 = unset)
-
-    [[ -n ${(k)option[$1]} ]];
-    r=$?
-
-    [[ $2 == "out" ]] && {
-        [[ $r == 0 ]] && { print 'set' } || { print 'unset' }
-    }
-
-    return $r;
-}
-# Print the option value matching the given flag
-# Unique argument is the commandline flag (e.g., "-s").
-option.value() {
-    print -n - "${option[$1]}"
-}
-option.parse() {
-
-    ### Detect subcommand
-    local -aU every_opts #every_opts behave like a set; that is, an array with unique elements
-    for optspec in ${option_subcommands}${option_main}; do
-        for opt in ${=optspec}; do
-            every_opts+=${opt}
-        done
-    done
-    local -a oldstar
-    oldstar=("${(@)argv}")
-    #### detect early: useful for --option-parsing
-    zparseopts -M -D -Adiscardme ${every_opts}
-    if [[ -n ${(k)discardme[--option-parsing]} ]]; then
-        print $1
-        if [[ -n "$1" ]]; then
-            return 1
-        fi
-        return 0
-    fi
-    unset discardme
-    if ! zparseopts -M -E -D -Adiscardme ${every_opts}; then
-        _failure "Command parses error."
-        return 1
-    fi
-    unset discardme
-    subcommand=${1}
-    if [[ -z $subcommand ]]; then
-        subcommand="__empty"
-    fi
-
-    if [[ -z ${(k)option_subcommands[$subcommand]} ]]; then
-		subcommand="__unknown:$subcommand"
-        # _warning "There's no such command \"::1 subcommand::\"." $subcommand
-		# _failure "Please try -h for help."
-    fi
-    argv=("${(@)oldstar}")
-    unset oldstar
-
-    ### Parsing global + command-specific options
-    # zsh magic: ${=string} will split to multiple arguments when spaces occur
-    set -A cmd_opts ${option_main} ${=option_subcommands[$subcommand]}
-    # if there is no option, we don't need parsing
-    if [[ -n $cmd_opts ]]; then
-        zparseopts -M -E -D -Aoption ${cmd_opts}
-        if [[ $? != 0 ]]; then
-            _warning "Some error occurred during option processing."
-            _failure "See zuper option.parse for more info."
-			return 1
-        fi
-    fi
-    #build option_params (array of arguments) and check if there are unrecognized options
-    ok=0
-    option_params=()
-    for arg in $*; do
-        if [[ $arg == '--' || $arg == '-' ]]; then
-            ok=1
-            continue #it shouldn't be appended to option_params
-        elif [[ $arg[1] == '-'  ]]; then
-            if [[ $ok == 0 ]]; then
-                _failure "Unrecognized option ::1 arg:: for subcommand ::2 subcommand::" $arg $subcommand
-				return 1
-            fi
-        fi
-        option_params+=$arg
-    done
-    # First parameter actually is the subcommand: delete it and shift
-    [[ $subcommand != '__empty' ]] && { option_params[1]=(); shift }
-
-    ### End parsing command-specific options
-
-    [[ "$option_params" == "" ]] && {
-        func "arg command: ::1 subcommand::" $subcommand
-    } || {
-        func "arg command: ::1 subcommand:: ::2 param::" $subcommand $option_params
-    }
-
-}
-
-# Later: process subcommand
-# case "$subcommand" in
-# 	help)
-# 		print "TODO: help"
-# 		;;
-# 	__empty)
-# 		zdump
-# 		;;
-
-#     # Reject unknown command and suggest help
-#     *)
-#         _warning "Command \"::1 subcommand::\" not recognized." $subcommand
-#         _message "Try -h for help."
-#         return 1
-#         ;;
-# esac
-
-# }}}
-
-# {{{ Helpers
-
-function helper.isfound isfound() {
-    command -v $1   1>/dev/null 2>/dev/null
-    return $?
-}
-
-# }}} Helpers
-
 vars+=(files numfiles dirs)
 vars+=(ext video_factor image_factor audio_factor code_factor text_factor other_factor web_factor slide_factor sheet_factor archiv_factor)
 
@@ -518,9 +356,6 @@ last_notice=()
 tmpfiles=()
 config_section=()
 config_section_type=${config_section_type:-org-mode}
-
-option_subcommands[__empty]=""
-option_subcommands[__unknown]=""
 
 func "Zuper $zuper_version initialized"
 func "${#vars} global variables registered"
