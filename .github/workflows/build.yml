@@ -1,5 +1,15 @@
 name: Test harvest
-on: [push, pull_request]
+on:
+  push:
+    paths-ignore:
+      - 'docs/**'
+      - 'examples/**'
+      - '*.md'
+    branches:
+    - main
+  pull_request:
+    branches:
+    - main
 
 jobs:
  shared:
@@ -8,7 +18,7 @@ jobs:
         os: [ubuntu-18.04, ubuntu-20.04, ubuntu-22.04]
         version: [11]
     runs-on: '${{ matrix.os }}'
-    name: 'Version: ${{ matrix.os }} / ${{ matrix.version }}'
+    name: '🐧 Linux: ${{ matrix.os }} / ${{ matrix.version }}'
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -20,13 +30,12 @@ jobs:
         run: |
           make -C test
 
-      # - name: Release
-      #   uses: softprops/action-gh-release@v1
-      #   if: startsWith(github.ref, 'refs/tags/')
-      #   with:
-      #     draft: true
-      #     generate_release_notes: true
-      #     fail_on_unmatched_files: true
-      #     files: |
-      #       harvest.elf
-      #       harvest.exe
+ mac-osx:
+   runs-on: macos-12
+   name: 😈 MacOSX
+   steps:
+   - name: Checkout
+     uses: actions/checkout@v2
+   - name: Run tests
+     run: |
+       make -C test
