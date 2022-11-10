@@ -5,18 +5,22 @@ move them around.
 
 ![Kant handle my swag](docs/kant_handle_my_swag.jpeg)
 
-It is compact and portable software that can scan files and folders to
+Harvest is a compact and portable script to scan files and folders and
 recognise their typology. Scanning is based on [file
 extensions](https://github.com/dyne/file-extension-list) and a simple
 fuzzy logic analysis of **folder contents** (not just files) to
 recognise if they are related to video, audio or text materials, etc.
 
-It is **fast**: it can process approximately 1GB of stored files per
-second and is operated from the console terminal.
+Harvest is **fast**: it can read approximately 1GB of stored filenames
+per second and is operated from the console terminal. It never
+modifies the filesystem: that is done explicitly by the user piping
+shell commands.
+
+[![Software by Dyne.org ](https://files.dyne.org/software_by_dyne.png)](https://dyne.org)
 
 Harvest operates on folders containing files without exploding the
 files around: it assesses the typology of a folder from the files
-contained, but does not move the files outside of that folder. For
+contained, but does not promote move the files outside of that folder. For
 instance it works very well to move around large collections of
 downloaded torrent folders.
 
@@ -37,28 +41,22 @@ Optional:
 
 ## :video_game: Usage
 
-Scan and save results
+Scan a folder /PATH/ to show and save results
 ```
- harvest scan [PATH] > /tmp/harvested
-```
-
-List all video file types in scanned results
-```
- cat /tmp/harvested | harvest ls video
+ harvest scan [PATH]
 ```
 
-To have a list of supported types use `harvest help` at any moment
+List of supported category types:
 ```
-Supported types:
  code image video book text font web archiv sheet exec slide audio
 ```
 
-Move all text files in scanned results
+Move all scanned text files in /PATH/ to /DEST/
 ```
- cat /tmp/harvested | harvest ls text | xargs -I % sh -c 'mv % <DEST>'
+ harvest scan [PATH] | grep ';text;' | xargs -rn1 -I% mv % [DEST]
 ```
 
-Tag all file attributes with `harvest.type`
+Tag all file attributes in /PATH/ with `harvest.type` categories
 ```
  harvest attr [PATH]
 ```
@@ -67,11 +65,6 @@ Tag all files for use with TMSU (See section below about TMSU)
 ```
  harvest tmsu [PATH]
 ```
-
-For more information about types recognized see the catalogue of file
-types we maintain in the [file-extension-list
-project](https://github.com/dyne/file-extension-list).
-
 
 
 ## TMSU
